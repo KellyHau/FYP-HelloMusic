@@ -1,0 +1,11 @@
+Step to start the project:
+1. At FYP-HelloMusic project, open bash terminal. 
+2. Enter : source env/Scripts/activate
+3. Enter : python manage.py runserver (at here, terminal will change to python automatically)
+4. Now should get meesage to go http://127.0.0.1:8000/ 
+5. The webpage will now open in Google Chrome. 
+
+Check the environment (resolve issue in views.py - Import "django.http" could not be resolved from sourcePylancereportMissingModuleSource): 
+1. ctrl + shift + p
+2. Select python:selectIntepreter
+3. Select Python 3.13.0 ('env':venv) 
