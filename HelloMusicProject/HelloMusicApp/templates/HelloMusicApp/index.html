@@ -7,58 +7,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Hello Music Dashboard</title>
     <!-- Bootstrap 5 CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <style>
-        .sidebar {
-            background-color: #6c757d;
-            min-height: 100vh;
-            padding: 20px;
-        }
-        
-        .music-sheet-card {
-            background-color: #e9ecef;
-            aspect-ratio: 3/4;
-            border-radius: 8px;
-            margin-bottom: 15px;
-        }
-        
-        .folder-item {
-            color: white;
-            padding: 8px 0;
-            cursor: pointer;
-        }
-        
-        .search-container {
-            position: relative;
-            margin-bottom: 30px;
-        }
-        
-        .search-container .form-control {
-            padding-right: 30px;
-            border-radius: 20px;
-        }
-        
-        .search-container .btn-close {
-            position: absolute;
-            right: 10px;
-            top: 50%;
-            transform: translateY(-50%);
-            padding: 0;
-            font-size: 12px;
-        }
-        
-        .avatar {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-        }
-        
-        .main-content {
-            padding: 20px;
-            background-color: #6c757d;
-            min-height: 100vh;
-        }
-    </style>
+    <link  href="{% static 'HelloMusicApp/css/bootstrap.min.css' %}" rel="stylesheet">
+    <link  href="{% static 'HelloMusicApp/css/dashboard.css' %}" rel="stylesheet">
 </head>
 <body>
     <div class="container-fluid">
@@ -111,6 +61,6 @@
     </div>
 
     <!-- Bootstrap 5 JS Bundle -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="{% static 'HelloMusicApp/js/bootstrap.bundle.min.js' %}"></script>
 </body>
 </html>
