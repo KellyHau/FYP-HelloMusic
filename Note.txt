@@ -1,9 +1,15 @@
 Step to start the project:
 1. At FYP-HelloMusic project, open bash terminal or PowerShell terminal. 
-2. Enter : source Venv/Scripts/activate (bash)
-           .\Venv\Scripts\activate (PowerShell)
+**If First time use have to install virtual environment in the project else ignore it
+** Enter : python -m venv env(virtual environment folder name) (bash)
+           py -m venv env (PowerShell)
+
+2. Enter : source env/Scripts/activate (bash)
+           .\env\Scripts\activate (PowerShell)
+
 3. Enter : python manage.py runserver (bash) (at here, terminal will change to python automatically)
            py manage.py runserver (PowerShell)
+
 4. Now should get meesage to go http://127.0.0.1:8000/ 
 5. The webpage will now open in Google Chrome. 
 
