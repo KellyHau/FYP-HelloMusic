@@ -6,7 +6,7 @@ class MusicSheetFolder(models.Model):
     
     ID = models.AutoField(primary_key=True)
     name = models.CharField(max_length=100)
-    ownerID = models.ForeignKey(User, on_delete=models.CASCADE, related_name="folders")
+    owner = models.ForeignKey(User, on_delete=models.CASCADE, related_name="folders")
     creationDate = models.DateTimeField(auto_now_add=True)
     updatedDate = models.DateTimeField(auto_now=True)
 
@@ -18,10 +18,10 @@ class MusicSheet(models.Model):
     
     ID = models.AutoField(primary_key=True)
     title = models.CharField(max_length=200)
-    tempo = models.CharField(max_length=30)
-    key_signature = models.CharField(max_length=30)
-    time_signature = models.CharField(max_length=30)
-    folderID =  models.ForeignKey(MusicSheetFolder, on_delete=models.CASCADE,related_name="music_sheets")
+    tempo = models.CharField(max_length=30, null=True, blank=True)
+    key_signature = models.CharField(max_length=30, null=True, blank=True)
+    time_signature = models.CharField(max_length=30, null=True, blank=True)
+    folder =  models.ForeignKey(MusicSheetFolder, on_delete=models.CASCADE,related_name="music_sheets", null=True, blank=True)
     creationDate = models.DateTimeField(auto_now_add=True)
     updatedDate = models.DateTimeField(auto_now=True)
     users = models.ManyToManyField(User, through="UserMusicSheet", related_name="music_sheets")
@@ -31,14 +31,14 @@ class MusicSheet(models.Model):
     
 class UserMusicSheet(models.Model):
     
-    sheetID = models.ForeignKey(MusicSheet, on_delete=models.CASCADE)
-    userID =  models.ForeignKey(User, on_delete=models.CASCADE)
+    sheet = models.ForeignKey(MusicSheet, on_delete=models.CASCADE)
+    user =  models.ForeignKey(User, on_delete=models.CASCADE)
     
     
 class Measure(models.Model):
     
     ID = models.AutoField(primary_key=True)
-    sheetID = models.ForeignKey(MusicSheet, on_delete=models.CASCADE,related_name="measures")
+    sheet = models.ForeignKey(MusicSheet, on_delete=models.CASCADE,related_name="measures")
     measure_number = models.IntegerField()
     time_signature = models.CharField(max_length=10)
 
@@ -48,7 +48,7 @@ class Measure(models.Model):
 class Staff(models.Model):
     
     ID = models.AutoField(primary_key=True)
-    sheetID = models.ForeignKey(MusicSheet, on_delete=models.CASCADE,related_name="staffs")
+    sheet = models.ForeignKey(MusicSheet, on_delete=models.CASCADE,related_name="staffs")
     instrument = models.CharField(max_length=50)
     clef_type = models.CharField(max_length=50)
 
@@ -58,7 +58,7 @@ class Staff(models.Model):
 class Chord(models.Model):
     
     ID = models.AutoField(primary_key=True)
-    measureID = models.ForeignKey(Measure, on_delete=models.CASCADE,related_name="chords")
+    measure = models.ForeignKey(Measure, on_delete=models.CASCADE,related_name="chords")
     note = models.CharField(max_length=100)
     chord_symbol = models.CharField(max_length=30)
 
@@ -68,7 +68,7 @@ class Chord(models.Model):
 class Rest(models.Model):
     
     ID = models.AutoField(primary_key=True)
-    measureID = models.ForeignKey(Measure, on_delete=models.CASCADE,related_name="rests")
+    measure = models.ForeignKey(Measure, on_delete=models.CASCADE,related_name="rests")
     duration = models.CharField(max_length=30)
 
     def __str__(self):
@@ -77,7 +77,7 @@ class Rest(models.Model):
 class Note(models.Model):
     
     ID = models.AutoField(primary_key=True)
-    measureID = models.ForeignKey(Measure, on_delete=models.CASCADE,related_name="notes")
+    measure = models.ForeignKey(Measure, on_delete=models.CASCADE,related_name="notes")
     pitch = models.CharField(max_length=30)
     duration = models.CharField(max_length=30)
     tie = models.CharField(max_length=30)
@@ -92,7 +92,7 @@ class Note(models.Model):
 class Lyrics(models.Model):
     
     ID = models.AutoField(primary_key=True)
-    noteID = models.ForeignKey(Note, on_delete=models.CASCADE,related_name="lyrics")
+    note = models.ForeignKey(Note, on_delete=models.CASCADE,related_name="lyrics")
     text = models.CharField(max_length=30)
     syllable_type = models.CharField(max_length=30)
 

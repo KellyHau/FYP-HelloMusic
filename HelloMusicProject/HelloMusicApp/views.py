@@ -1,5 +1,10 @@
-from django.shortcuts import render
-import pyrebase
+from django.shortcuts import render, redirect
+from django.contrib.auth.decorators import login_required
+from django.contrib.auth.forms import UserCreationForm
+from django.contrib import messages
+from .models import *
+from .forms import *
+# import pyrebase
 
 # config = {
 #     "apiKey": "AIzaSyAFdTQIkXeJCkE760kQH1kZtCjkZnm3o7Q",
@@ -14,6 +19,19 @@ import pyrebase
 # firebase = pyrebase .initialize_app(config)
 # authe = firebase.auth()
 # database = firebase.database()
+
+def register(request):
+    
+    if request.method == 'POST':
+        form = UserCreationForm(request.POST) #django register form
+        if form.is_valid():
+            form.save() 
+            messages.success(request, "User created successfully.")
+            return redirect('login/')
+    else:
+        form = UserCreationForm()
+    
+    return render(request, 'HelloMusicApp/register.html', {'form': form})
 
 def home(request):
 #     music_sheets = database.child('MusicSheet').get().each()
@@ -35,4 +53,22 @@ def folderList(request):
           "range_list": range(12), 
     }
     return render(request,"HelloMusicApp/folderList.html",context)
+
+
+def create_sheet(request): #need to login before create
+    
+    if request.method == 'POST':
+        form = MusicSheetForm(request.POST)
+        if form.is_valid():
+            music_sheet = form.save() #direct save into database
+
+            UserMusicSheet.objects.create(sheet=music_sheet, user=request.user)
+            
+            return redirect('/')
+
+    else:
+        form = MusicSheetForm()
+    
+    return render(request, 'HelloMusicApp/createSheet.html', {'form': form})
+
 

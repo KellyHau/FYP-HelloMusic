@@ -45,6 +45,12 @@
                         <img src="{% static 'HelloMusicApp/images/user.png' %}" alt="User Avatar" class="avatar">
                         <span class="text-white ms-2">Username</span>
                     </div>
+                    <div>
+                        <form action="{% url 'logout' %}" method="post" style="display: inline;">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-link">Logout</button>
+                        </form>
+                    </div>
                 </div>
                 
                 <!-- Music Sheets Grid -->

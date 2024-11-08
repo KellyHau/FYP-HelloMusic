@@ -48,7 +48,10 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    # 'HelloMusicApp.middleware.LoginRequiredMiddleware',  # if want to without force login command this line
 ]
+
+MESSAGE_STORAGE = 'django.contrib.messages.storage.session.SessionStorage'
 
 ROOT_URLCONF = 'HelloMusicProject.urls'
 
@@ -79,7 +82,7 @@ DATABASES = {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': 'hellomusic',
         'USER': 'root',
-        'PASSWORD': 'lee123',
+        'PASSWORD': 'lee123', #password follow your root's password
         'HOST': '127.0.0.1',  
         'PORT': '3306',       
     }
@@ -103,6 +106,11 @@ AUTH_PASSWORD_VALIDATORS = [
         'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
     },
 ]
+
+
+# Redirect to the home page or dashboard after login
+LOGIN_REDIRECT_URL = '/'
+LOGOUT_REDIRECT_URL = '/'  # "/login/" Redirect to login page after logout
 
 
 # Internationalization
