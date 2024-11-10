@@ -1,5 +1,6 @@
 from django.shortcuts import render, redirect
 from django.contrib.auth.forms import UserCreationForm
+from django.shortcuts import get_object_or_404
 from django.contrib import messages
 from django.http import JsonResponse
 from django.views.decorators.http import require_POST
@@ -28,7 +29,7 @@ def register(request):
         if form.is_valid():
             form.save() 
             messages.success(request, "User created successfully.")
-            return redirect('login/')
+            return redirect('/login/')
     else:
         form = UserCreationForm()
     
@@ -79,14 +80,44 @@ def create_sheet(request): #need to login before create
 def user_music_sheets_list(request): #need to login before show it
  return MusicSheet.objects.filter(users=request.user)
 
+
 @require_POST
-def delete_sheet(request,sheet_id):
-    try:
-        # Find the music sheet by ID and delete it
-        music_sheet = MusicSheet.objects.get(ID=sheet_id)
+def delete_sheet(request, sheet_id): #need to login and have sheet before delete it
+
+    try:    
+        # Use get_object_or_404 to find the music sheet by ID
+        music_sheet = get_object_or_404(MusicSheet, ID=sheet_id)    
         music_sheet.delete()
         return JsonResponse({'success': True})
     except MusicSheet.DoesNotExist:
         return JsonResponse({'success': False, 'error': 'Music sheet not found'})
- 
+
+    # For example, if you want to check if the sheet belongs to the user, you can do:
+    # if music_sheet.user != request.user:
+    #     return JsonResponse({'success': False, 'error': 'Not authorized to delete this sheet'})
+    
+@require_POST
+def editSheet(request, sheet_id):
+    
+    new_title = request.POST.get('title', '').strip()    
+    
+    if not new_title:
+        return JsonResponse({'success': False, 'error': 'Title cannot be empty'})
+    
+    # Use get_object_or_404 to find the music sheet by ID
+    music_sheet = get_object_or_404(MusicSheet, ID=sheet_id)    
+    
+    # Update the title and save it
+    music_sheet.title = new_title
+    music_sheet.save()
+
+    return JsonResponse({'success': True, 'title': new_title})
+
+    # Check if the user is authorized to edit this music sheet (optional)
+    # if music_sheet.user != request.user:
+    #     return JsonResponse({'success': False, 'error': 'Not authorized to edit this sheet'})
+
+
+
+
 

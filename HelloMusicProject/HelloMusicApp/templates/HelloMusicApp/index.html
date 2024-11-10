@@ -66,7 +66,7 @@
                     {% for sheet in music_sheets %}
                     <div class="col-sm-6 col-md-4 col-lg-3 music-sheet-item" sheet-id="{{ sheet.ID }}">
                         <div class="music-sheet-card"></div>
-                        <div class="text-white">{{ sheet.title }}</div>
+                        <div class="text-white sheet-title">{{ sheet.title }}</div>
                     </div>
                     {% endfor %}
 
@@ -84,11 +84,31 @@
         <a href="#share" id="share-option">Share</a>
     </div>
 
+    <!-- Edit Title Modal -->
+    <div class="modal fade" id="editTitleModal" tabindex="-1" aria-labelledby="editTitleModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="editTitleModalLabel">Edit Music Sheet Title</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="text" id="newTitle" class="form-control" placeholder="Enter new title">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-primary" onclick="saveTitle()">Save</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Bootstrap 5 JS Bundle -->
     <script src="{% static 'HelloMusicApp/js/bootstrap.bundle.min.js' %}"></script>
+    <script src="{% static 'HelloMusicApp/js/jquery.min.js' %}"></script>
     <script>
         const contextMenu = document.getElementById('context-menu');
         let selectedSheetId = null;
+        let selectedTitle = null;
 
         // Attach event listener to all elements with the 'music-sheet-item' class
         document.querySelectorAll('.music-sheet-item').forEach(item => {
@@ -97,6 +117,7 @@
 
                 // Get the selected music sheet's ID
                 selectedSheetId = item.getAttribute('sheet-id');
+                selectedTitle = item.querySelector('.sheet-title').textContent;
 
                 // Show the custom context menu at the mouse position
                 contextMenu.style.display = 'block';
@@ -148,6 +169,42 @@
 
             document.getElementById('context-menu').style.display = 'none';
         });
+
+        //open edit window
+        document.getElementById('edit-option').addEventListener('click', function (event) {
+            event.preventDefault();
+
+            currentSheetId = selectedSheetId;
+            document.getElementById('newTitle').value = selectedTitle;
+            contextMenu.style.display='none';
+            $('#editTitleModal').modal('show');
+        });
+
+        //save sheet edit data
+        function saveTitle() {
+            const newTitle = document.getElementById('newTitle').value;
+        
+            $.ajax({
+                url: `/editSheet/${currentSheetId}/`,
+                type: 'POST',
+                data: {
+                    'title': newTitle,
+                    'csrfmiddlewaretoken': '{{ csrf_token }}'
+                },
+                success: function(response) {
+                    if (response.success) {
+                        // Update the title in the DOM without refreshing
+                        $(`.music-sheet-item[sheet-id=${currentSheetId}]`).find('.sheet-title').text(newTitle);
+                        $('#editTitleModal').modal('hide');
+                    } else {
+                        alert(response.error);
+                    }
+                },
+                error: function() {
+                    alert('Error occurred while saving.');
+                }
+            });
+        }
     </script>
 </body>
 

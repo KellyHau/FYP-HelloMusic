@@ -1,4 +1,4 @@
-from django.contrib import messages
+from django.shortcuts import redirect
 from django.http import HttpResponseRedirect
 
 class LoginRequiredMiddleware:
@@ -7,8 +7,9 @@ class LoginRequiredMiddleware:
         self.get_response = get_response
 
     def __call__(self, request):
+        
         # Check if the user is not authenticated and is not already on the login page
-        if not request.user.is_authenticated and request.path != '/login/':
+        if not request.user.is_authenticated and request.path not in ['/login/', '/register/']:
             # Redirect to the login page
             return HttpResponseRedirect('/login/')
 

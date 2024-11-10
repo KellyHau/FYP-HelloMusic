@@ -10,6 +10,11 @@
     <button type="submit">Login</button>
 </form>
 
+<div>
+<a href="{% url 'register' %}">No account? Go Register!</a>
+
+</div>
+
 {% if form.errors %}
     <p class="error">Invalid username or password. Please try again.</p>
 {% endif %}

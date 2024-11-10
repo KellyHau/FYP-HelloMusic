@@ -12,4 +12,5 @@ urlpatterns = [
     path("folderList/",views.folderList, name="folderList"),
     path("createSheet/",views.create_sheet, name="createSheet"),
     path("deleteSheet/<int:sheet_id>/",views.delete_sheet, name="deleteSheet"),
+    path('editSheet/<int:sheet_id>/', views.editSheet, name='editSheet'),
     ]
