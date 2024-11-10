@@ -47,3 +47,26 @@
     background-color: #6c757d;
     min-height: 100vh;
 }
+
+/* Context menu styling [index.html]*/
+.custom-context-menu {
+    display: none;
+    position: absolute;
+    background-color: #f8f9fa;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    z-index: 1000;
+}
+
+.custom-context-menu a {
+    display: block;
+    padding: 8px 15px;
+    color: #333;
+    text-decoration: none;
+}
+
+.custom-context-menu a:hover {
+    background-color: #e9ecef;
+    color: #000;
+}

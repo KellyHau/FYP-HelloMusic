@@ -2,14 +2,16 @@
 
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Hello Music Dashboard</title>
     <!-- Bootstrap 5 CSS -->
-    <link  href="{% static 'HelloMusicApp/css/bootstrap.min.css' %}" rel="stylesheet">
-    <link  href="{% static 'HelloMusicApp/css/dashboard.css' %}" rel="stylesheet">
+    <link href="{% static 'HelloMusicApp/css/bootstrap.min.css' %}" rel="stylesheet">
+    <link href="{% static 'HelloMusicApp/css/dashboard.css' %}" rel="stylesheet">
 </head>
+
 <body>
     <div class="container-fluid">
         <div class="row">
@@ -18,19 +20,23 @@
                 <div class="mb-4">
                     <h5><a class="text-white text-decoration-none" href="{% url 'home' %}">Hello Music Logo</a></h5>
                 </div>
-                
+
                 <div class="mb-3">
                     <h6 class="text-white-50">Recent open folder</h6>
                 </div>
-                
+
                 <div class="folder-list">
-                    <div class="folder-item"><a class="text-white text-decoration-none" href="{% url 'folder' %}">Folder name</a></div>
-                    <div class="folder-item"><a class="text-white text-decoration-none" href="{% url 'folder' %}">Folder name</a></div>
-                    <div class="folder-item"><a class="text-white text-decoration-none" href="{% url 'folder' %}">Folder name</a></div>
-                    <div class="folder-item"><a class="text-white text-decoration-none" href="{% url 'folder' %}">Folder name</a></div>
+                    <div class="folder-item"><a class="text-white text-decoration-none" href="{% url 'folder' %}">Folder
+                            name</a></div>
+                    <div class="folder-item"><a class="text-white text-decoration-none" href="{% url 'folder' %}">Folder
+                            name</a></div>
+                    <div class="folder-item"><a class="text-white text-decoration-none" href="{% url 'folder' %}">Folder
+                            name</a></div>
+                    <div class="folder-item"><a class="text-white text-decoration-none" href="{% url 'folder' %}">Folder
+                            name</a></div>
                 </div>
             </div>
-            
+
             <!-- Main Content -->
             <div class="col-md-9 col-lg-10 main-content">
                 <div class="d-flex justify-content-between align-items-center mb-4">
@@ -39,7 +45,7 @@
                         <input type="search" class="form-control" placeholder="Search">
                         <button type="button" class="btn-close" aria-label="Close"></button>
                     </div>
-                    
+
                     <!-- User Profile -->
                     <div class="d-flex align-items-center">
                         <img src="{% static 'HelloMusicApp/images/user.png' %}" alt="User Avatar" class="avatar">
@@ -52,21 +58,97 @@
                         </form>
                     </div>
                 </div>
-                
+
                 <!-- Music Sheets Grid -->
                 <div class="row">
+                    {% if music_sheets %}
+
                     {% for sheet in music_sheets %}
-                    <div class="col-sm-6 col-md-4 col-lg-3">
+                    <div class="col-sm-6 col-md-4 col-lg-3 music-sheet-item" sheet-id="{{ sheet.ID }}">
                         <div class="music-sheet-card"></div>
-                        <div class="text-white">{{ sheet.val.Title }}</div>
+                        <div class="text-white">{{ sheet.title }}</div>
                     </div>
                     {% endfor %}
+
+                    {% else %}
+                    <p>No music sheets found.</p>
+                    {% endif %}
                 </div>
             </div>
         </div>
     </div>
 
+    <div id="context-menu" class="custom-context-menu">
+        <a href="#edit" id="edit-option">Edit</a>
+        <a href="#delete" id="delete-option">Delete</a>
+        <a href="#share" id="share-option">Share</a>
+    </div>
+
     <!-- Bootstrap 5 JS Bundle -->
     <script src="{% static 'HelloMusicApp/js/bootstrap.bundle.min.js' %}"></script>
+    <script>
+        const contextMenu = document.getElementById('context-menu');
+        let selectedSheetId = null;
+
+        // Attach event listener to all elements with the 'music-sheet-item' class
+        document.querySelectorAll('.music-sheet-item').forEach(item => {
+            item.addEventListener('contextmenu', function (event) {
+                event.preventDefault(); // Prevent the default context menu
+
+                // Get the selected music sheet's ID
+                selectedSheetId = item.getAttribute('sheet-id');
+
+                // Show the custom context menu at the mouse position
+                contextMenu.style.display = 'block';
+                contextMenu.style.left = `${event.pageX}px`;
+                contextMenu.style.top = `${event.pageY}px`;
+            });
+        });
+
+        // Hide context menu on left-click 
+        document.addEventListener('click', function (event) {
+            if (!contextMenu.contains(event.target)) {
+                contextMenu.style.display = 'none';
+            }
+        });
+
+        // Hide the context menu if right-click 
+        document.addEventListener('contextmenu', function (event) {
+            if (!event.target.closest('.music-sheet-item')) {
+                contextMenu.style.display = 'none';
+            }
+        });
+
+        //delete option click handler
+        document.getElementById('delete-option').addEventListener('click', function (event) {
+            event.preventDefault();
+
+            // Show confirmation dialog
+            const confirmed = confirm("Are you sure you want to delete this music sheet?");
+
+            if (confirmed && selectedSheetId) {
+                // If confirmed, proceed to delete
+                fetch(`/deleteSheet/${selectedSheetId}/`, {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRFToken': '{{ csrf_token }}', // Ensure CSRF token for Django
+                        },
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            alert("Music sheet deleted successfully.");
+                            location.reload(); // Reload or update page as needed
+                        } else {
+                            alert("Failed to delete music sheet: " + data.error);
+                        }
+                    })
+                    .catch(error => console.error("Error in fetch request:", error));
+            }
+
+            document.getElementById('context-menu').style.display = 'none';
+        });
+    </script>
 </body>
+
 </html>

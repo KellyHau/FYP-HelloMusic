@@ -1,7 +1,8 @@
 from django.shortcuts import render, redirect
-from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib import messages
+from django.http import JsonResponse
+from django.views.decorators.http import require_POST
 from .models import *
 from .forms import *
 # import pyrebase
@@ -34,13 +35,12 @@ def register(request):
     return render(request, 'HelloMusicApp/register.html', {'form': form})
 
 def home(request):
-#     music_sheets = database.child('MusicSheet').get().each()
+    music_sheets_list = user_music_sheets_list(request)
     
-#    # Filter out any empty items
-#     valid_music_sheets = [sheet for sheet in music_sheets if sheet.val()]
     context = {
-        # "music_sheets": valid_music_sheets
+        'music_sheets': music_sheets_list
     }
+    
     return render(request,"HelloMusicApp/index.html",context)
 
 
@@ -68,7 +68,25 @@ def create_sheet(request): #need to login before create
 
     else:
         form = MusicSheetForm()
+        
+    context={
+        'form': form
+    }
     
-    return render(request, 'HelloMusicApp/createSheet.html', {'form': form})
+    return render(request, 'HelloMusicApp/createSheet.html', context)
 
+
+def user_music_sheets_list(request): #need to login before show it
+ return MusicSheet.objects.filter(users=request.user)
+
+@require_POST
+def delete_sheet(request,sheet_id):
+    try:
+        # Find the music sheet by ID and delete it
+        music_sheet = MusicSheet.objects.get(ID=sheet_id)
+        music_sheet.delete()
+        return JsonResponse({'success': True})
+    except MusicSheet.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'Music sheet not found'})
+ 
 
