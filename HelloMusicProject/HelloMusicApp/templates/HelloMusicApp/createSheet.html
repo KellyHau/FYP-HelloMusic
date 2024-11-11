@@ -1,5 +1,16 @@
-<form method="post">
+{% load crispy_forms_tags %}
+{% load static %}
+
+<link href="{% static 'HelloMusicApp/css/bootstrap.min.css' %}" rel="stylesheet">
+<link href="{% static 'HelloMusicApp/css/dashboard.css' %}" rel="stylesheet">
+
+<form method="post" action="{% url 'createSheet' %}">
     {% csrf_token %}
-    {{ form.as_p }}
-    <button type="submit">Create</button>
+    
+    <!-- Customize the title field with custom HTML and CSS classes -->
+    <div class="form-group">
+        {{ form.title|as_crispy_field }}
+    </div>
+    
+    <button type="submit" class="btn btn-primary">Create Music Sheet</button>
 </form>

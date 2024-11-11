@@ -1,4 +1,7 @@
+{% load crispy_forms_tags %}
+
 {% load static %}
+
 <!DOCTYPE html>
 <html lang="en">
 
@@ -10,7 +13,8 @@
     <!-- Bootstrap 5 CSS -->
     <link href="{% static 'HelloMusicApp/css/bootstrap.min.css' %}" rel="stylesheet">
     <link href="{% static 'HelloMusicApp/css/dashboard.css' %}" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.5.0/font/bootstrap-icons.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.5.0/font/bootstrap-icons.min.css"
+        rel="stylesheet">
 </head>
 
 <body>
@@ -21,9 +25,15 @@
             <div class="col-md-3 col-lg-2 sidebar">
                 <div class="mb-4">
                     <a class="text-white text-decoration-none" href="{% url 'home' %}">
-                        <img src="{% static 'HelloMusicApp/images/logo.png' %}" alt="Logo"
-                            style="height : auto; width : 160px;" />
+                        <img src="{% static 'HelloMusicApp/images/logo.png' %}" alt="Logo" class="img-fluid w-100" />
                     </a>
+                </div>
+
+                <div class="mb-3">
+                    <button id="addSheet" class="btn btn-outline-light d-flex align-items-center"
+                        style="border-color: transparent;">
+                        <i class="bi bi-plus-square me-2"></i> New Sheet
+                    </button>
                 </div>
 
                 <div class="mb-3">
@@ -71,12 +81,43 @@
     </div>
 
 
+    <!-- Add Sheet Modal -->
+    <div class="modal fade" id="addsheetModal" tabindex="-1" aria-labelledby="addsheetModal" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <form method="post" action="{% url 'createSheet' %}">
+                    {% csrf_token %}
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="addsheetModal">New Sheet</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="form-group">
+                            {{ form.title|as_crispy_field }}
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="submit" class="btn btn-primary">Save</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
     <!-- Footer -->
     <footer>
         <p>&copy; 2024 Hello Music</p>
     </footer>
     <script src="{% static 'HelloMusicApp/js/bootstrap.bundle.min.js' %}"></script>
     <script src="{% static 'HelloMusicApp/js/jquery.min.js' %}"></script>
+    <script>
+        //open add window
+        document.getElementById('addSheet').addEventListener('click', function (event) {
+            event.preventDefault();
+
+            $('#addsheetModal').modal('show');
+        });
+    </script>
     {% block script_content %}{% endblock %}
 
 </body>
