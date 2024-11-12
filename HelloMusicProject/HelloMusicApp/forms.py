@@ -5,3 +5,4 @@ class MusicSheetForm(forms.ModelForm):
     class Meta:
         model = MusicSheet
         fields = ['title']
+        

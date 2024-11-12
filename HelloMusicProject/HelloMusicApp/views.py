@@ -35,11 +35,15 @@ def register(request):
     
     return render(request, 'HelloMusicApp/register.html', {'form': form})
 
-def home(request):
+def home(request):   
+   
+    addSheetform = MusicSheetForm(initial={'title': 'Untitled Sheet'})
     music_sheets_list = user_music_sheets_list(request)
+ 
     
     context = {
-        'music_sheets': music_sheets_list
+        'music_sheets': music_sheets_list,
+        'form': addSheetform
     }
     
     return render(request,"HelloMusicApp/index.html",context)
@@ -55,26 +59,18 @@ def folderList(request):
     }
     return render(request,"HelloMusicApp/folderList.html",context)
 
-
+@require_POST
 def create_sheet(request): #need to login before create
     
-    if request.method == 'POST':
-        form = MusicSheetForm(request.POST)
-        if form.is_valid():
-            music_sheet = form.save() #direct save into database
-
-            UserMusicSheet.objects.create(sheet=music_sheet, user=request.user)
-            
-            return redirect('/')
-
-    else:
-        form = MusicSheetForm()
-        
-    context={
-        'form': form
-    }
+    form = MusicSheetForm(request.POST)
     
-    return render(request, 'HelloMusicApp/createSheet.html', context)
+    if form.is_valid():
+        music_sheet = form.save() #direct save into database
+
+        UserMusicSheet.objects.create(sheet=music_sheet, user=request.user)
+            
+    return redirect('/')
+
 
 
 def user_music_sheets_list(request): #need to login before show it

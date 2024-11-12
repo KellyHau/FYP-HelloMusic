@@ -1,69 +1,17 @@
+{% extends 'HelloMusicApp/base.html' %}
+
 {% load static %}
 
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hello Music Dashboard - Folder List</title>
-    <!-- Bootstrap 5 CSS -->
-    <link  href="{% static 'HelloMusicApp/css/bootstrap.min.css' %}" rel="stylesheet">
-    <link  href="{% static 'HelloMusicApp/css/dashboard.css' %}" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.5.0/font/bootstrap-icons.min.css" rel="stylesheet">
-</head>
-<body>
-    <div class="container-fluid">
-        <div class="row">
-            <!-- Sidebar -->
-            <div class="col-md-3 col-lg-2 sidebar">
-                <div class="mb-4">
-                    <h5>
-                        <a href="{% url 'home' %}" class="text-white text-decoration-none logo-link">Hello Music Logo</a>
-                    </h5>
-                </div>
+{% block title %}Folder List - Hello Music{% endblock %}
 
-                <div class="mb-3">
-                    <h6 class="text-white-50">Recent open folder</h6>
-                </div>
-
-                <div class="folder-list">
-                    <div class="folder-item">Folder name</div>
-                    <div class="folder-item">Folder name</div>
-                    <div class="folder-item">Folder name</div>
-                    <div class="folder-item">Folder name</div>
-                </div>
-            </div>
-
-            <!-- Main Content -->
-            <div class="col-md-9 col-lg-10 main-content">
-                <div class="d-flex justify-content-between align-items-center mb-4">
-                    <!-- Search Bar -->
-                    <div class="search-container w-50">
-                        <input type="search" class="form-control" placeholder="Search">
-                        <button type="button" class="btn-close" aria-label="Close"></button>
-                    </div>
-
-                    <!-- User Profile -->
-                    <div class="d-flex align-items-center">
-                        <img src="{% static 'HelloMusicApp/images/user.png' %}" alt="User Avatar" class="avatar">
-                        <span class="text-white ms-2">Username</span>
-                    </div>
-                </div>
-
-                <!-- Folder Grid -->
-                <div class="row">
-                    {% for i in range_list %}
-                    <div class="col-sm-6 col-md-4 col-lg-3 folder-card">
-                        <i class="bi bi-folder folder-icon text-white" style="font-size: 5rem;"></i>
-                        <div  class="text-white ms-2">Folder Name</div>
-                    </div>
-                    {% endfor %}
-                </div>
-            </div>
-        </div>
+{% block content %}
+<!-- Folder Grid -->
+<div class="row">
+    {% for i in range_list %}
+    <div class="col-sm-6 col-md-4 col-lg-3 folder-card">
+        <i class="bi bi-folder folder-icon text-white" style="font-size: 5rem;"></i>
+        <div class="text-white ms-2">Folder Name</div>
     </div>
-
-    <!-- Bootstrap 5 JS Bundle -->
-    <script src="{% static 'HelloMusicApp/js/bootstrap.bundle.min.js' %}"></script>
-</body>
-</html>
+    {% endfor %}
+</div>
+{% endblock %}
