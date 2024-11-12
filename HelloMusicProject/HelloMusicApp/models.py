@@ -9,6 +9,7 @@ class MusicSheetFolder(models.Model):
     owner = models.ForeignKey(User, on_delete=models.CASCADE, related_name="folders")
     creationDate = models.DateTimeField(auto_now_add=True)
     updatedDate = models.DateTimeField(auto_now=True)
+    users = models.ManyToManyField(User, through="UserMusicSheetFolder", related_name="user_sheet_folders")
 
     def __str__(self):
         return self.name
@@ -24,15 +25,50 @@ class MusicSheet(models.Model):
     folder =  models.ForeignKey(MusicSheetFolder, on_delete=models.CASCADE,related_name="music_sheets", null=True, blank=True)
     creationDate = models.DateTimeField(auto_now_add=True)
     updatedDate = models.DateTimeField(auto_now=True)
-    users = models.ManyToManyField(User, through="UserMusicSheet", related_name="music_sheets")
+    owner = models.ForeignKey(User, on_delete=models.CASCADE, related_name="music_sheets")
+    users = models.ManyToManyField(User, through="UserMusicSheet", related_name="user_music_sheets")
 
     def __str__(self):
         return self.title
+    
     
 class UserMusicSheet(models.Model):
     
     sheet = models.ForeignKey(MusicSheet, on_delete=models.CASCADE)
     user =  models.ForeignKey(User, on_delete=models.CASCADE)
+    role = models.CharField(
+        max_length=50,
+        choices=[
+            ('viewer', 'Viewer'),
+            ('editor', 'Editor'),
+        ],
+        default='viewer',
+    )
+
+    class Meta:
+        unique_together = ('sheet', 'user')
+
+    def __str__(self):
+        return f"{self.user.username} in {self.sheet.title} as {self.role}"
+    
+    
+class UserMusicSheetFolder(models.Model):
+    folder = models.ForeignKey(MusicSheetFolder, on_delete=models.CASCADE)
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    role = models.CharField(
+        max_length=50,
+        choices=[
+            ('viewer', 'Viewer'),
+            ('editor', 'Editor'),
+        ],
+        default='viewer',
+    )
+
+    class Meta:
+        unique_together = ('folder', 'user')
+
+    def __str__(self):
+        return f"{self.user.username} in {self.folder.name} as {self.role}"
     
     
 class Measure(models.Model):
