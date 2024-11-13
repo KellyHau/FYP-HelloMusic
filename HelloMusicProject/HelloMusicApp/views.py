@@ -28,7 +28,6 @@ from django.contrib.auth import logout
 def register(request):
     
     if request.method == 'POST':
-        form = UserCreationForm(request.POST) #django register form
         form = RegisterForm(request.POST) #django register form
         if form.is_valid():
             form.save() 

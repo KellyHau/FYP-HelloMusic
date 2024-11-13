@@ -180,27 +180,27 @@
       }
 
       /* Floating animation */
-      @keyframes float {    
+      @keyframes float {
         0% {
-            transform: translateY(0) translateX(0);
-            opacity: 0.7;
-          }
-          25% {
-            transform: translateY(-10vh) translateX(-10vw);
-            opacity: 0.8;
-          }
-          50% {
-            transform: translateY(-20vh) translateX(5vw);
-            opacity: 0.9;
-          }
-          75% {
-            transform: translateY(-30vh) translateX(-5vw);
-            opacity: 0.8;
-          }
-          100% {
-            transform: translateY(-40vh) translateX(10vw);
-            opacity: 0;
-          }
+          transform: translateY(0) translateX(0);
+          opacity: 0.7;
+        }
+        25% {
+          transform: translateY(-10vh) translateX(-10vw);
+          opacity: 0.8;
+        }
+        50% {
+          transform: translateY(-20vh) translateX(5vw);
+          opacity: 0.9;
+        }
+        75% {
+          transform: translateY(-30vh) translateX(-5vw);
+          opacity: 0.8;
+        }
+        100% {
+          transform: translateY(-40vh) translateX(10vw);
+          opacity: 0;
+        }
       }
     </style>
   </head>
@@ -218,10 +218,9 @@
           <div class="form-group">
             <input
               type="text"
-              name="full_name"
-              placeholder="Full Name"
               name="username"
               placeholder="Username"
+              value="{{ request.POST.username }}"
               required
             />
           </div>
@@ -233,11 +232,14 @@
               id="email"
               name="email"
               placeholder="Email"
+              value="{{ request.POST.email }}"
               required
             />
-            <div id="email-error" class="error-message">
-              *Please enter a valid email address.
-            </div>
+            {% if form.email.errors %}
+              <div class="error-message" style="display: block;">
+                {{ form.email.errors.0 }}
+              </div>
+            {% endif %}
           </div>
 
           <!-- Password -->
@@ -246,9 +248,11 @@
               type="password"
               id="password"
               name="password"
-              placeholder="Password"
+              placeholder="Password (min 6 character with at least 1 alphebet and 1 number)"
+              value="{{ request.POST.password }}"
               required
             />
+
             <i
               class="fa fa-eye-slash show-password"
               onclick="togglePassword('password')"
@@ -266,6 +270,7 @@
               id="confirm-password"
               name="confirm_password"
               placeholder="Confirm Password"
+              value="{{ request.POST.confirm_password }}"
               required
             />
             <i
@@ -283,7 +288,11 @@
           <!-- Login Link -->
           <div class="login-link">
             Already have an account? &nbsp;
-            <a href="{% url 'login' %}" style="color: #2F89E0; text-decoration: none">Login</a>
+            <a
+              href="{% url 'login' %}"
+              style="color: #2f89e0; text-decoration: none"
+              >Login</a
+            >
           </div>
         </form>
       </div>
@@ -310,6 +319,11 @@
     </div>
 
     <script>
+      setTimeout(function () {
+        document.getElementById("message-{{ forloop.counter }}").style.display =
+          "none";
+      }, 3000); // Message disappears after 3 seconds
+
       function togglePassword(id) {
         const passwordField = document.getElementById(id);
         const icon = passwordField.nextElementSibling;
@@ -327,50 +341,36 @@
 
       // Validation function
       document
-        .getElementById("registrationForm")
-        .addEventListener("submit", function (event) {
+      .getElementById("registrationForm")
+      .addEventListener("submit", function (event) {
           let isValid = true;
-
-          // Email validation
-          const emailField = document.getElementById("email");
-          const emailError = document.getElementById("email-error");
-          const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-          if (!emailRegex.test(emailField.value)) {
-            emailError.style.display = "block";
-            isValid = false;
-          } else {
-            emailError.style.display = "none";
-          }
-
+  
           // Password validation
           const passwordField = document.getElementById("password");
           const passwordError = document.getElementById("password-error");
           const passwordRegex = /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d!@#$%^&*]{6,}$/;
           if (!passwordRegex.test(passwordField.value)) {
-            passwordError.style.display = "block";
-            isValid = false;
+              passwordError.style.display = "block";  // Show password error
+              isValid = false;
           } else {
-            passwordError.style.display = "none";
+              passwordError.style.display = "none";  // Hide password error if valid
           }
-
+  
           // Confirm Password validation
-          const confirmPasswordField =
-            document.getElementById("confirm-password");
-          const confirmPasswordError = document.getElementById(
-            "confirm-password-error"
-          );
+          const confirmPasswordField = document.getElementById("confirm-password");
+          const confirmPasswordError = document.getElementById("confirm-password-error");
           if (confirmPasswordField.value !== passwordField.value) {
-            confirmPasswordError.style.display = "block";
-            isValid = false;
+              confirmPasswordError.style.display = "block";  // Show confirm password error
+              isValid = false;
           } else {
-            confirmPasswordError.style.display = "none";
+              confirmPasswordError.style.display = "none";  // Hide confirm password error if matches
           }
-
+  
           // Prevent form submission if there are validation errors
           if (!isValid) {
-            event.preventDefault();
+              event.preventDefault();
           }
-        });
+      });
     </script>
   </body>
 </html>

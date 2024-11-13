@@ -19,7 +19,7 @@ class RegisterForm(forms.ModelForm):
     def clean(self):
         cleaned_data = super().clean()
         password = cleaned_data.get('password')
-        confirm_password = cleaned_data.get('confirm_password')
+        confirm_password = cleaned_data.get('confirm_password')  # Update this to use an underscore
 
         if password != confirm_password:
             raise ValidationError("Passwords do not match")
@@ -28,7 +28,7 @@ class RegisterForm(forms.ModelForm):
     def clean_email(self):
         email = self.cleaned_data.get('email')
         if User.objects.filter(email=email).exists():
-            raise forms.ValidationError("Email already exists. Please use other email to register.")
+            raise forms.ValidationError("This email already exists. Please use other email to register.")
         return email
     
     def save(self, commit=True):

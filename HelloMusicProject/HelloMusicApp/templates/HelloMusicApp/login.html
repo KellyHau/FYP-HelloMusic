@@ -268,6 +268,7 @@
               id="email"
               name="email"
               placeholder="Email Address"
+              value="{{ request.POST.email }}"
               required
             />
             <div id="email-error" class="error-message">
@@ -282,6 +283,7 @@
               id="password"
               name="password"
               placeholder="Password"
+              value="{{ request.POST.password }}"
               required
             />
             <i
