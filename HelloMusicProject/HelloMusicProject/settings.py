@@ -86,7 +86,7 @@ DATABASES = {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': 'hellomusic',
         'USER': 'root',
-        'PASSWORD': 'lee123', #password follow your root's password
+        'PASSWORD': 'abc123', #password follow your root's password
         'HOST': '127.0.0.1',  
         'PORT': '3306',       
     }
@@ -138,3 +138,9 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# Login using email
+AUTHENTICATION_BACKENDS = [
+    'HelloMusicApp.backends.EmailBackend',  # Add the path to the custom backend
+    'django.contrib.auth.backends.ModelBackend',  # Keep the default backend for other auth
+]

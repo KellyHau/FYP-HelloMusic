@@ -6,6 +6,9 @@ from django.http import JsonResponse
 from django.views.decorators.http import require_POST
 from .models import *
 from .forms import *
+from django.contrib.auth import authenticate, login as auth_login  # Rename the login method to avoid conflict
+from django.contrib import messages
+from django.contrib.auth import logout
 # import pyrebase
 
 # config = {
@@ -26,14 +29,37 @@ def register(request):
     
     if request.method == 'POST':
         form = UserCreationForm(request.POST) #django register form
+        form = RegisterForm(request.POST) #django register form
         if form.is_valid():
             form.save() 
             messages.success(request, "User created successfully.")
             return redirect('/login/')
     else:
-        form = UserCreationForm()
+        form = RegisterForm()
     
     return render(request, 'HelloMusicApp/register.html', {'form': form})
+
+def login_user(request):
+    if request.method == 'POST':
+        email = request.POST.get('email')
+        password = request.POST.get('password')
+
+        # Check if the user is authenticated
+        user = authenticate(request, email=email, password=password)
+        
+        if user is not None:
+            auth_login(request, user)  # Log the user in if authentication is successful
+            return redirect('home')
+        else:
+            messages.error(request, 'Invalid credentials, please try again.')
+            return render(request, 'HelloMusicApp/login.html')
+
+    return render(request, 'HelloMusicApp/login.html')
+
+def logout_user(request):
+    logout(request)
+    messages.success(request, 'You have successfully logged out.')
+    return redirect('login')
 
 def home(request):   
    

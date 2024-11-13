@@ -235,8 +235,31 @@
       <div class="right-side">
         <h1 class="form-title">Login</h1>
 
+        <!--Prompt message-->
+        {% if messages %}
+          <div class="message-container">
+          {% for message in messages %}
+          {% if message.tags == "error" %}
+          <div class="alert alert-{{ message.tags }} fade show" role="alert" style="color:red;">
+            *{{ message }}
+        </div>
+        {% else %}
+              <div class="alert alert-{{ message.tags }} fade show" role="alert" id="message-{{ forloop.counter }}">
+                  {{ message }}
+              </div>
+              {% endif %}
+              <script>
+                  setTimeout(function() {
+                      document.getElementById("message-{{ forloop.counter }}").style.display = "none";
+                  }, 3000);  // Message disappears after 3 seconds
+              </script>
+          {% endfor %}
+          </div>
+        {% endif %}
+
         <!-- Registration Form -->
         <form id="LoginForm" method="post">
+        <form id="LoginForm" method="post" action="{% url 'login' %}">
           {% csrf_token %}
           <!-- Email -->
           <div class="form-group">
@@ -272,6 +295,7 @@
               <a
                 href="{% url 'register' %}"
                 style="color: #2F89E0; text-decoration: none"
+                style="color: #2f89e0; text-decoration: none"
                 >Reset Here</a
               >
             </div>
@@ -286,6 +310,7 @@
             <a
               href="{% url 'register' %}"
               style="color: #2F89E0; text-decoration: none"
+              style="color: #2f89e0; text-decoration: none"
               >Join</a
             >
           </div>
@@ -334,7 +359,3 @@
     </script>
   </body>
 </html>
-
-{% if form.errors %}
-<p class="error">Invalid username or password. Please try again.</p>
-{% endif %}
