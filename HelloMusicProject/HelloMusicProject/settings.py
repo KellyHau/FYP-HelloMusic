@@ -52,7 +52,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    #'HelloMusicApp.middleware.LoginRequiredMiddleware',  # if want to without force login command this line
+    'HelloMusicApp.middleware.LoginRequiredMiddleware',  # if want to without force login command this line
 ]
 
 MESSAGE_STORAGE = 'django.contrib.messages.storage.session.SessionStorage'
@@ -86,7 +86,7 @@ DATABASES = {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': 'hellomusic',
         'USER': 'root',
-        'PASSWORD': 'abc123', #password follow your root's password
+        'PASSWORD': 'lee123', #password follow your root's password
         'HOST': '127.0.0.1',  
         'PORT': '3306',       
     }

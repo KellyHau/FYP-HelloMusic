@@ -7,6 +7,11 @@ class MusicSheetForm(forms.ModelForm):
     class Meta:
         model = MusicSheet
         fields = ['title']
+        
+class MusicSheetFolderForm(forms.ModelForm):
+    class Meta:
+        model = MusicSheetFolder
+        fields = ['name']
 
 class RegisterForm(forms.ModelForm):
     email = forms.EmailField(required=True)

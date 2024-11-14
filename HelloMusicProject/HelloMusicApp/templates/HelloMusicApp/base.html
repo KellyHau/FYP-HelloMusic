@@ -35,6 +35,12 @@
                         <i class="bi bi-plus-square me-2"></i> New Sheet
                     </button>
                 </div>
+                <div class="mb-3">
+                    <button id="addFolder" class="btn btn-outline-light d-flex align-items-center"
+                        style="border-color: transparent;">
+                        <i class="bi bi-plus-square me-2"></i> New Folder
+                    </button>
+                </div>
 
                 <div class="mb-3">
                     <h6 class="text-white-50">Recent open folder</h6>
@@ -93,16 +99,40 @@
                     </div>
                     <div class="modal-body">
                         <div class="form-group">
-                            {{ form.title|as_crispy_field }}
+                            {{ sheetform.title|as_crispy_field }}
                         </div>
                     </div>
                     <div class="modal-footer">
-                        <button type="submit" class="btn btn-primary">Save</button>
+                        <button type="submit" class="btn btn-primary">Create</button>
                     </div>
                 </form>
             </div>
         </div>
     </div>
+
+    <!-- Add Folder Modal -->
+    <div class="modal fade" id="addfolderModal" tabindex="-1" aria-labelledby="addfolderModal" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <form method="post" action="{% url 'createFolder' %}">
+                    {% csrf_token %}
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="addfolderModal">New Folder</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="form-group">
+                            {{ folderform.name|as_crispy_field }}
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="submit" class="btn btn-primary">Create</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
 
     <!-- Footer -->
     <footer>
@@ -111,11 +141,18 @@
     <script src="{% static 'HelloMusicApp/js/bootstrap.bundle.min.js' %}"></script>
     <script src="{% static 'HelloMusicApp/js/jquery.min.js' %}"></script>
     <script>
-        //open add window
+        //open add sheet window
         document.getElementById('addSheet').addEventListener('click', function (event) {
             event.preventDefault();
 
             $('#addsheetModal').modal('show');
+        });
+
+        //open add folder window
+        document.getElementById('addFolder').addEventListener('click', function (event) {
+            event.preventDefault();
+
+            $('#addfolderModal').modal('show');
         });
     </script>
     {% block script_content %}{% endblock %}

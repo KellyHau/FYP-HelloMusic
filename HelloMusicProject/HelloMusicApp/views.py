@@ -9,26 +9,12 @@ from .forms import *
 from django.contrib.auth import authenticate, login as auth_login  # Rename the login method to avoid conflict
 from django.contrib import messages
 from django.contrib.auth import logout
-# import pyrebase
 
-# config = {
-#     "apiKey": "AIzaSyAFdTQIkXeJCkE760kQH1kZtCjkZnm3o7Q",
-#     "authDomain": "hellomusic-63ee9.firebaseapp.com",
-#     "databaseURL": "https://hellomusic-63ee9-default-rtdb.firebaseio.com",
-#     "projectId": "hellomusic-63ee9",
-#     "storageBucket": "hellomusic-63ee9.firebasestorage.app",
-#     "messagingSenderId": "186714219968",
-#     "appId": "1:186714219968:web:456d77546cc2cc3b73d425",
-# }
-
-# firebase = pyrebase .initialize_app(config)
-# authe = firebase.auth()
-# database = firebase.database()
 
 def register(request):
     
     if request.method == 'POST':
-        form = RegisterForm(request.POST) #django register form
+        form = RegisterForm(request.POST)
         if form.is_valid():
             form.save() 
             messages.success(request, "User created successfully.")
@@ -63,15 +49,34 @@ def logout_user(request):
 def home(request):   
    
     addSheetform = MusicSheetForm(initial={'title': 'Untitled Sheet'})
+    addFolderform = MusicSheetFolderForm(initial={'name': 'Untitled Folder'})
     music_sheets_list = user_music_sheets_list(request)
  
     
     context = {
         'music_sheets': music_sheets_list,
-        'form': addSheetform
+        'sheetform': addSheetform,
+        'folderform': addFolderform
     }
     
     return render(request,"HelloMusicApp/index.html",context)
+
+
+@require_POST
+def create_folder(request): #need to login before create
+    
+    form = MusicSheetFolderForm(request.POST)
+    
+    if form.is_valid():
+        music_sheet_folder = form.save() 
+           
+        UserMusicSheetFolder.objects.create(
+            folder=music_sheet_folder,
+            user=request.user,
+            role='Owner' 
+        )
+            
+    return redirect('/')
 
 
 def folder(request):
@@ -90,8 +95,8 @@ def create_sheet(request): #need to login before create
     form = MusicSheetForm(request.POST)
     
     if form.is_valid():
-        # Don't save the form directly; create an instance instead
-        music_sheet = form.save()  # Create a MusicSheet instance without saving to the database
+      
+        music_sheet = form.save() 
            
         UserMusicSheet.objects.create(
             sheet=music_sheet,
