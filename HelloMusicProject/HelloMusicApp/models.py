@@ -6,7 +6,6 @@ class MusicSheetFolder(models.Model):
     
     ID = models.AutoField(primary_key=True)
     name = models.CharField(max_length=100)
-    owner = models.ForeignKey(User, on_delete=models.CASCADE, related_name="folders")
     creationDate = models.DateTimeField(auto_now_add=True)
     updatedDate = models.DateTimeField(auto_now=True)
     users = models.ManyToManyField(User, through="UserMusicSheetFolder", related_name="user_sheet_folders")
@@ -25,7 +24,6 @@ class MusicSheet(models.Model):
     folder =  models.ForeignKey(MusicSheetFolder, on_delete=models.CASCADE,related_name="music_sheets", null=True, blank=True)
     creationDate = models.DateTimeField(auto_now_add=True)
     updatedDate = models.DateTimeField(auto_now=True)
-    owner = models.ForeignKey(User, on_delete=models.CASCADE, related_name="music_sheets")
     users = models.ManyToManyField(User, through="UserMusicSheet", related_name="user_music_sheets")
 
     def __str__(self):
@@ -39,6 +37,7 @@ class UserMusicSheet(models.Model):
     role = models.CharField(
         max_length=50,
         choices=[
+            ('owner', 'Owner'),
             ('viewer', 'Viewer'),
             ('editor', 'Editor'),
         ],
@@ -58,6 +57,7 @@ class UserMusicSheetFolder(models.Model):
     role = models.CharField(
         max_length=50,
         choices=[
+            ('owner', 'Owner'),
             ('viewer', 'Viewer'),
             ('editor', 'Editor'),
         ],

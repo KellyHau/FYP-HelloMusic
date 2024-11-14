@@ -90,9 +90,14 @@ def create_sheet(request): #need to login before create
     form = MusicSheetForm(request.POST)
     
     if form.is_valid():
-        music_sheet = form.save() #direct save into database
-
-        UserMusicSheet.objects.create(sheet=music_sheet, user=request.user)
+        # Don't save the form directly; create an instance instead
+        music_sheet = form.save()  # Create a MusicSheet instance without saving to the database
+           
+        UserMusicSheet.objects.create(
+            sheet=music_sheet,
+            user=request.user,
+            role='Owner' 
+        )
             
     return redirect('/')
 
