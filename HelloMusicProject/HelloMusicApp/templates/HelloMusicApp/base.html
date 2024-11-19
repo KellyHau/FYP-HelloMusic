@@ -42,19 +42,28 @@
                     </button>
                 </div>
 
+
+                <div class="mb-3">
+                    <a class="text-white text-decoration-none" href="{% url 'folderList' %}">
+                        <h6 class="text-white">Folder</h6>
+                    </a>
+                </div>
+
                 <div class="mb-3">
                     <h6 class="text-white-50">Recent open folder</h6>
                 </div>
 
                 <div class="folder-list">
-                    <div class="folder-item"><a class="text-white text-decoration-none" href="{% url 'folder' %}">Folder
-                            name</a></div>
-                    <div class="folder-item"><a class="text-white text-decoration-none" href="{% url 'folder' %}">Folder
-                            name</a></div>
-                    <div class="folder-item"><a class="text-white text-decoration-none" href="{% url 'folder' %}">Folder
-                            name</a></div>
-                    <div class="folder-item"><a class="text-white text-decoration-none" href="{% url 'folder' %}">Folder
-                            name</a></div>
+                    {% if sheet_folder %}
+
+                    {% for folder in sheet_folder %}
+                    <div class="folder-item" folder-id="{{ folder.ID }}">
+                        <a class="text-white text-decoration-none"
+                            href="{% url 'sheetFolder' folder.ID %}">{{ folder.name }}</a>
+                    </div>
+                    {% endfor %}
+
+                    {% endif %}
                 </div>
             </div>
 

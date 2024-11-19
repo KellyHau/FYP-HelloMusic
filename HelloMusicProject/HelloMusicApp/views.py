@@ -51,10 +51,12 @@ def home(request):
     addSheetform = MusicSheetForm(initial={'title': 'Untitled Sheet'})
     addFolderform = MusicSheetFolderForm(initial={'name': 'Untitled Folder'})
     music_sheets_list = user_music_sheets_list(request)
+    user_folder_list = user_folder(request)
  
     
     context = {
         'music_sheets': music_sheets_list,
+        'sheet_folder': user_folder_list,
         'sheetform': addSheetform,
         'folderform': addFolderform
     }
@@ -79,14 +81,41 @@ def create_folder(request): #need to login before create
     return redirect('/')
 
 
-def folder(request):
-    context={}
+def user_folder(request):
+    return MusicSheetFolder.objects.filter(users=request.user)
+   
+   
+def music_sheet_folder(request,folder_id):
+    folder = get_object_or_404(MusicSheetFolder, ID=folder_id, users=request.user)
+    music_sheets = folder.music_sheets.all()
+    folder_name  = folder.name
+    
+    addSheetform = MusicSheetForm(initial={'title': 'Untitled Sheet'})
+    addFolderform = MusicSheetFolderForm(initial={'name': 'Untitled Folder'})
+    user_folder_list = user_folder(request)
+    
+    context={       
+        'sheetform': addSheetform,
+        'folderform': addFolderform,
+        'sheet_folder': user_folder_list,
+        'music_sheets': music_sheets,
+        'folder_name' : folder_name,
+            
+    }
     return render(request,"HelloMusicApp/folder.html",context)
 
 def folderList(request):
-    context={
-          "range_list": range(12), 
+    addSheetform = MusicSheetForm(initial={'title': 'Untitled Sheet'})
+    addFolderform = MusicSheetFolderForm(initial={'name': 'Untitled Folder'})
+    user_folder_list = user_folder(request)
+    
+    
+    context={       
+        'sheetform': addSheetform,
+        'folderform': addFolderform,
+        'sheet_folder': user_folder_list,       
     }
+    
     return render(request,"HelloMusicApp/folderList.html",context)
 
 @require_POST
