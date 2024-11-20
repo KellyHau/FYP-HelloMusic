@@ -13,4 +13,5 @@ urlpatterns = [
     path("createSheet/",views.create_sheet, name="createSheet"),
     path("deleteSheet/<int:sheet_id>/",views.delete_sheet, name="deleteSheet"),
     path('editSheet/<int:sheet_id>/', views.editSheet, name='editSheet'),
+    path('sheet/', views.sheet, name='sheet'),
     ]

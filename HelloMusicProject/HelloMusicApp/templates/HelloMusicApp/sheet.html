@@ -1,0 +1,105 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Music Notation</title>
+    <style>
+        .note {
+            display: inline-block;
+            margin: 10px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Drag and Drop Music Notes</h1>
+    <div id="notation"></div>
+    <div id="notes">
+        <div class="note" draggable="true" data-note="C/4" data-duration="q">C</div>
+        <div class="note" draggable="true" data-note="D/5" data-duration="q">D</div>
+        <div class="note" draggable="true" data-note="E/6" data-duration="q">E</div>
+        <div class="note" draggable="true" data-note="F/2" data-duration="q">F</div>
+    </div>
+
+
+    <script src="{% static 'HelloMusicApp/js/vexflow.js' %}"></script>
+    <script>
+        // Render blank staff
+        const VF = Vex.Flow;
+        const div = document.getElementById("notation");
+        const renderer = new VF.Renderer(div, VF.Renderer.Backends.SVG);
+        renderer.resize(500, 200);
+
+        const context = renderer.getContext();
+        const stave = new VF.Stave(10, 40, 400);
+        stave.addClef("treble").setContext(context).draw();
+
+        // Add drag-and-drop functionality
+        const notes = document.querySelectorAll(".note");
+        let notesArray = [];
+
+        notes.forEach(note => {
+            note.addEventListener("dragstart", (e) => {
+                e.dataTransfer.setData("note", JSON.stringify({
+                    pitch: e.target.dataset.note,
+                    duration: e.target.dataset.duration
+                }));
+            });
+        });
+
+
+        div.addEventListener("dragover", (e) => {
+            e.preventDefault();
+        });
+
+        div.addEventListener("drop", (e) => {
+            e.preventDefault();
+
+            const data = JSON.parse(e.dataTransfer.getData("note"));
+
+            console.log({
+                clef: "treble",
+                keys: [data.pitch.toLowerCase()],
+                duration: data.duration
+            });
+
+            // Add the note to the notes array
+            notesArray.push(new VF.StaveNote({
+                clef: "treble",
+                keys: [data.pitch.toLowerCase()],
+                duration: data.duration
+            }));
+            
+            console.log("Notes Array:", notesArray);
+
+            // Re-render the staff with all notes
+            renderStaff();
+
+
+        });
+
+        function renderStaff() {
+            // Clear the previous rendering
+            context.clear();
+
+            // Redraw the staff
+            stave.setContext(context).draw();
+
+            // Create a new voice with the notes
+            const voice = new VF.Voice({
+                num_beats: notesArray.length,
+                beat_value: 4,
+                partialMeasure: true // Ignore incomplete voice
+            }).addTickables(notesArray);
+
+            // Format and render the notes
+            const formatter = new VF.Formatter().joinVoices([voice]).format([voice], 400);
+            voice.draw(context, stave);
+        }
+    </script>
+</body>
+
+</html>

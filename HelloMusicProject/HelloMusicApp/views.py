@@ -177,6 +177,9 @@ def editSheet(request, sheet_id):
     # if music_sheet.user != request.user:
     #     return JsonResponse({'success': False, 'error': 'Not authorized to edit this sheet'})
 
+def sheet(request):
+    context = {}
+    return render(request,"HelloMusicApp/sheet.html",context)
 
 
 
