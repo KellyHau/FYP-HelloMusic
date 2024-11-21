@@ -87,19 +87,22 @@ def user_folder(request):
    
 def music_sheet_folder(request,folder_id):
     folder = get_object_or_404(MusicSheetFolder, ID=folder_id, users=request.user)
-    music_sheets = folder.music_sheets.all()
-    folder_name  = folder.name
+    folder_music_sheets = folder.music_sheets.all()
+    folder_list = user_folder(request)
+    music_sheets_list = user_music_sheets_list(request)
     
     addSheetform = MusicSheetForm(initial={'title': 'Untitled Sheet'})
     addFolderform = MusicSheetFolderForm(initial={'name': 'Untitled Folder'})
-    user_folder_list = user_folder(request)
-    
+    addsheetfolderform = AddSheetsToFolderForm(initial={'selected_sheets': music_sheets_list})
+  
     context={       
         'sheetform': addSheetform,
         'folderform': addFolderform,
-        'sheet_folder': user_folder_list,
-        'music_sheets': music_sheets,
-        'folder_name' : folder_name,
+        'sheetfolderform': addsheetfolderform,
+        'sheet_folder': folder_list,
+        'folder_music_sheets': folder_music_sheets,
+        'folder' : folder,
+        'music_sheets' : music_sheets_list,
             
     }
     return render(request,"HelloMusicApp/folder.html",context)
@@ -180,6 +183,22 @@ def editSheet(request, sheet_id):
 def sheet(request):
     context = {}
     return render(request,"HelloMusicApp/sheet.html",context)
+
+@require_POST
+def add_sheets_to_folder(request, folder_id):
+    folder = get_object_or_404(MusicSheetFolder, ID=folder_id, users=request.user)
+    
+    form = AddSheetsToFolderForm(request.POST)
+    
+    if form.is_valid():
+         selected_sheets = form.cleaned_data['selected_sheets']
+         for sheet in selected_sheets:
+            sheet.folder = folder
+            sheet.save()
+            
+         return redirect("sheetFolder", folder_id=folder_id)
+    
+
 
 
 

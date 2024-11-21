@@ -6,11 +6,20 @@
 
 {% block content %}
 <!-- Folder Name and Music Sheets Grid -->
-<h3 class="text-white mb-4">{{ folder_name }}</h3>
-<div class="row">
-    {% if music_sheets %}
+<h3 class="text-white mb-4">{{ folder.name }}</h3>
 
-    {% for sheet in music_sheets %}
+<div class="row">
+
+    <div class="col-sm-6 col-md-4 col-lg-3" data-bs-toggle="tooltip" data-bs-placement="right"
+        data-bs-original-title="Add music sheet" id="addsheetfolder">
+        <div class="d-flex align-items-center justify-content-center  add-card ">
+            <span class="add-icon">+</span>
+        </div>
+    </div>
+
+    {% if folder_music_sheets %}
+
+    {% for sheet in folder_music_sheets %}
     <div class="col-sm-6 col-md-4 col-lg-3 music-sheet-item" sheet-id="{{ sheet.ID }}">
         <div class="music-sheet-card"></div>
         <div class="text-white sheet-title">{{ sheet.title }}</div>
@@ -24,4 +33,54 @@
 
 </div>
 
+
+<!-- Add Sheet to Folder Model-->
+<div class="modal fade" id="addsheetfolderModal" tabindex="-1" aria-labelledby="addsheetfolderModalLabel"
+    aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="POST" action="{% url 'addSheettoFolder' folder.ID %}">
+                {% csrf_token %}
+                <div class="modal-header">
+                    <h5 class="modal-title" id="addsheetfolderModalLabel">Add Existing Sheets</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        {{ sheetfolderform.selected_sheets.label_tag }}
+                        {{ sheetfolderform.selected_sheets }}
+                        <small class="form-text text-muted">
+                            {{ sheetfolderform.selected_sheets.help_text|safe }}
+                        </small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="submit" class="btn btn-primary">Add to Folder</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+
+{% endblock %}
+
+{% block script_content %}
+<script>
+    //open add sheet to folder model
+    document.getElementById('addsheetfolder').addEventListener('click', function (event) {
+        event.preventDefault();
+
+        $('#addsheetfolderModal').modal('show');
+    });
+
+
+    //ensure tooltip functionality
+    document.addEventListener('DOMContentLoaded', function () {
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+        tooltipTriggerList.forEach(function (tooltipTriggerEl) {
+            new bootstrap.Tooltip(tooltipTriggerEl);
+        });
+    });
+</script>
 {% endblock %}

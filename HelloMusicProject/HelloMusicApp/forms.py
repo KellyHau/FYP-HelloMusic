@@ -13,6 +13,19 @@ class MusicSheetFolderForm(forms.ModelForm):
         model = MusicSheetFolder
         fields = ['name']
 
+class AddSheetsToFolderForm(forms.Form):
+    selected_sheets = forms.ModelMultipleChoiceField(
+        queryset=MusicSheet.objects.all(),
+        widget=forms.SelectMultiple(attrs={
+            'class': 'form-control',
+            'id': 'sheetSelection',
+        }),
+        label="Select Sheets",
+        help_text="Hold <kbd>Ctrl</kbd> (or <kbd>Cmd</kbd> on Mac) to select multiple sheets.",
+        required=True
+    )
+
+
 class RegisterForm(forms.ModelForm):
     email = forms.EmailField(required=True)
     confirm_password = forms.CharField(widget=forms.PasswordInput, label="Confirm Password")

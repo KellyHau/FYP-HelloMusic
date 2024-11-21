@@ -70,3 +70,31 @@
     background-color: #e9ecef;
     color: #000;
 }
+
+/* Add card on sheet folder */
+.add-card{
+    background-color: #e9ecef;
+    aspect-ratio: 3/4;
+    border-radius: 8px;
+    margin-bottom: 15px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.3s ease, transform 0.3s ease;
+}
+
+.add-card:hover{
+    background-color: #d6d8db;
+    transform: scale(1.05);
+}
+
+.add-icon {
+    font-size: 5rem;
+    color: #6c757d;
+    font-weight: bold;
+}
+
+#sheetSelection {
+    height: 200px; 
+    overflow-y: auto;
+}
