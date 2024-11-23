@@ -8,6 +8,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token }}">
+
     <title>{% block title %}{% endblock %}</title>
     <link rel="icon" href="{% static 'HelloMusicApp/images/favicon.ico' %}" type="image/x-icon">
     <!-- Bootstrap 5 CSS -->
@@ -150,6 +152,16 @@
     <script src="{% static 'HelloMusicApp/js/bootstrap.bundle.min.js' %}"></script>
     <script src="{% static 'HelloMusicApp/js/jquery.min.js' %}"></script>
     <script>
+
+        // Ensure CSRF token for Django
+        const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+
+        $.ajaxSetup({
+            headers: {
+                'X-CSRFToken': csrfToken
+            }
+        });
+
         //open add sheet window
         document.getElementById('addSheet').addEventListener('click', function (event) {
             event.preventDefault();
