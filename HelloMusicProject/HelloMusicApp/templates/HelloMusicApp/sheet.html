@@ -31,6 +31,7 @@
 
 
     <script src="{% static 'HelloMusicApp/js/vexflow.js' %}"></script>
+    <script src="{% static 'HelloMusicApp/js/Tone.js' %}"></script>
     <script>
         // Render blank staff
         const VF = Vex.Flow;
@@ -65,24 +66,18 @@
 
             const data = JSON.parse(e.dataTransfer.getData("note"));
 
-            console.log({
-                clef: "treble",
-                keys: [data.pitch.toLowerCase()],
-                duration: data.duration
-            });
-
             // Add the note to the notes array
             notesArray.push(new VF.StaveNote({
                 clef: "treble",
                 keys: [data.pitch.toLowerCase()],
                 duration: data.duration
             }));
-            
+
             console.log("Notes Array:", notesArray);
 
             // Re-render the staff with all notes
             renderStaff();
-
+            playnote();
 
         });
 
@@ -103,6 +98,48 @@
             // Format and render the notes
             const formatter = new VF.Formatter().joinVoices([voice]).format([voice], 400);
             voice.draw(context, stave);
+
+        }
+
+        function playnote() {
+            // Create a Tone.js synth
+            const synth = new Tone.Synth().toDestination();
+
+            let time = Tone.now();
+            console.log("Playing note at time:", time);
+            // Play each note
+            notesArray.forEach((note) => {
+                const pitch = note.keys[0].replace("/", ""); // Replace "/" with an empty string
+                let duration;
+
+                // Map VexFlow durations to Tone.js durations
+                switch (note.duration) {
+                    case "w":
+                        duration = "1n";
+                        break; // Whole note
+                    case "h":
+                        duration = "2n";
+                        break; // Half note
+                    case "q":
+                        duration = "4n";
+                        break; // Quarter note
+                    case "8":
+                        duration = "8n";
+                        break; // Eighth note
+                    default:
+                        duration = "4n"; // Fallback to quarter note
+                }
+
+                // Schedule the note with Tone.js
+                console.log("Playing note:", pitch, "Duration:", duration, "At time:", time);
+
+                synth.triggerAttackRelease(pitch, duration, time);
+ 
+                // Start the Tone.js Transport to play the notes
+                time += Tone.Time(duration).toSeconds();
+            
+
+            });
         }
     </script>
 </body>
