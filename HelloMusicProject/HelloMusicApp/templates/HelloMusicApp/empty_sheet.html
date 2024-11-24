@@ -1,0 +1,354 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Sheet Detail</title>
+    <script src="{% static 'HelloMusicApp/js/vexflow.js' %}"></script>
+    <script src="{% static 'HelloMusicApp/js/Tone.js' %}"></script>
+    <link href="{% static 'HelloMusicApp/css/sheet.css' %}" rel="stylesheet" />
+  </head>
+  <body>
+    <div class="container">
+      <div class="controls">
+        <div class="control-group">
+          <label for="clef-select">Select Clef:</label>
+          <select id="clef-select">
+            <option value="treble">Treble Clef</option>
+            <option value="bass">Bass Clef</option>
+          </select>
+        </div>
+
+        <div class="control-group">
+          <label for="time-select">Time Signature:</label>
+          <select id="time-select">
+            <option value="4/4">4/4</option>
+            <option value="3/4">3/4</option>
+            <option value="2/4">2/4</option>
+            <option value="6/8">6/8</option>
+          </select>
+        </div>
+
+        <button id="apply-changes">Apply Changes</button>
+        <button id="clear-notes">Clear Notes</button>
+
+        <div class="separator"></div>
+
+        <h2>Note Palette</h2>
+        <div class="draggable-note" draggable="true" data-duration="w">
+          Whole Note
+        </div>
+        <div class="draggable-note" draggable="true" data-duration="h">
+          Half Note
+        </div>
+        <div class="draggable-note" draggable="true" data-duration="q">
+          Quarter Note
+        </div>
+        <div class="draggable-note" draggable="true" data-duration="8">
+          Eighth Note
+        </div>
+
+        <div class="playback-controls">
+          <button id="play">Play</button>
+          <button id="stop">Stop</button>
+        </div>
+
+        <div id="error-message"></div>
+      </div>
+      <div class="staff-scroll-container">
+        <div id="staff-container"></div>
+      </div>
+    </div>
+
+    <script>
+      const { Factory, Renderer, Stave, Voice, Formatter } = Vex.Flow;
+
+      // Initialize music state
+      let measures = [[]];
+      let currentMeasureIndex = 0;
+      let selectedNote = null;
+      let synth = null;
+      let isPlaying = false;
+
+      // Duration mappings
+      const DURATIONS = {
+        w: { ticks: 32, beats: 4, time: "1n" },
+        h: { ticks: 16, beats: 2, time: "2n" },
+        q: { ticks: 8, beats: 1, time: "4n" },
+        8: { ticks: 4, beats: 0.5, time: "8n" },
+      };
+
+      // Note frequency mappings
+      const NOTE_FREQUENCIES = {
+        c: 261.63,
+        d: 293.66,
+        e: 329.63,
+        f: 349.23,
+        g: 392.0,
+        a: 440.0,
+        b: 493.88,
+      };
+
+      // Initialize Tone.js
+      async function initAudio() {
+        await Tone.start();
+        synth = new Tone.Synth().toDestination();
+      }
+
+      // Initialize VexFlow for each measure
+      function initializeStaves() {
+        const staffContainer = document.getElementById('staff-container');
+        staffContainer.innerHTML = '';
+        
+        // Calculate number of rows needed
+        const numberOfRows = Math.ceil(measures.length / 4);
+        
+        for (let row = 0; row < numberOfRows; row++) {
+            const div = document.createElement('div');
+            div.className = 'staff-row';
+            div.id = `staff-row-${row}`;
+            staffContainer.appendChild(div);
+    
+            const renderer = new Renderer(div, Renderer.Backends.SVG);
+            // Width for 4 measures (250px each) plus some padding
+            renderer.resize(1050, 150);
+            const context = renderer.getContext();
+            
+            // Draw measures for this row
+            const startMeasure = row * 4;
+            const endMeasure = Math.min((row + 1) * 4, measures.length);
+            
+            for (let i = startMeasure; i < endMeasure; i++) {
+                const xOffset = (i % 4) * 250 + 10;
+                const stave = new Stave(xOffset, 40, 250);
+                
+                // Add clef and time signature only to first measure of each row
+                if (i === startMeasure) {
+                    const clef = document.getElementById('clef-select').value;
+                    stave.addClef(clef);
+                    if (row === 0) {  // Add time signature only to first measure of first row
+                        const timeSignature = document.getElementById('time-select').value;
+                        stave.addTimeSignature(timeSignature);
+                    }
+                }
+                
+                stave.setContext(context).draw();
+                drawMeasure(measures[i], stave, context);
+            }
+        }
+    }
+
+      function drawMeasure(measureNotes, stave, context) {
+        const { num, den } = getTimeSignature();
+        const voice = new Voice({ num_beats: num, beat_value: den });
+
+        // Add existing notes
+        measureNotes.forEach((note) => voice.addTickable(note));
+
+        // Fill with rests
+        fillWithRests(voice, measureNotes);
+
+        const formatter = new Formatter();
+        formatter.joinVoices([voice]).format([voice], 200);
+        voice.draw(context, stave);
+
+        // Add click handlers for notes
+        context.svg
+          .querySelectorAll(".vf-stavenote")
+          .forEach((noteElement, index) => {
+            noteElement.style.cursor = "pointer";
+            noteElement.addEventListener("click", () => {
+              if (selectedNote) {
+                selectedNote.classList.remove("selected-note");
+              }
+              noteElement.classList.add("selected-note");
+              selectedNote = noteElement;
+            });
+          });
+      }
+
+      function getTimeSignature() {
+        const timeSig = document.getElementById("time-select").value;
+        const [num, den] = timeSig.split("/").map(Number);
+        return { num, den };
+      }
+
+      function getCurrentBeats(measureIndex) {
+        return measures[measureIndex].reduce((sum, note) => {
+          const duration = note.duration.split("r")[0];
+          return sum + DURATIONS[duration].beats;
+        }, 0);
+      }
+
+      function fillWithRests(voice, measureNotes) {
+        const { num } = getTimeSignature();
+        const currentBeats = measureNotes.reduce((sum, note) => {
+          const duration = note.duration.split("r")[0];
+          return sum + DURATIONS[duration].beats;
+        }, 0);
+
+        let remainingBeats = num - currentBeats;
+
+        while (remainingBeats > 0) {
+          let restDuration;
+          if (remainingBeats >= 4) restDuration = "wr";
+          else if (remainingBeats >= 2) restDuration = "hr";
+          else if (remainingBeats >= 1) restDuration = "qr";
+          else restDuration = "8r";
+
+          const rest = new Vex.Flow.StaveNote({
+            keys: ["b/4"],
+            duration: restDuration,
+          });
+          voice.addTickable(rest);
+          remainingBeats -= DURATIONS[restDuration.slice(0, -1)].beats;
+        }
+      }
+
+      function addNote(duration, x, y, measureIndex) {
+        const position = Math.floor((y - 40) / 5);
+        const clef = document.getElementById('clef-select').value;
+        
+        const noteMap = clef === 'treble' 
+            ? ['f/5', 'e/5', 'd/5', 'c/5', 'b/4', 'a/4', 'g/4', 'f/4', 'e/4', 'd/4', 'c/4']
+            : ['a/3', 'g/3', 'f/3', 'e/3', 'd/3', 'c/3', 'b/2', 'a/2', 'g/2', 'f/2', 'e/2'];
+    
+        const snapIndex = Math.min(Math.max(Math.round(position), 0), noteMap.length - 1);
+        const keys = [noteMap[snapIndex]];
+    
+        const note = new Vex.Flow.StaveNote({
+            keys: keys,
+            duration: duration
+        });
+    
+        const currentBeats = getCurrentBeats(measureIndex);
+        const { num } = getTimeSignature();
+    
+        if (currentBeats + DURATIONS[duration].beats > num) {
+            // Create new measure when current is full
+            measures.push([]);
+            currentMeasureIndex = measures.length - 1;
+            measures[currentMeasureIndex].push(note);
+        } else {
+            measures[measureIndex].push(note);
+        }
+    
+        initializeStaves();
+    }
+    
+      
+      async function playMeasures() {
+        if (!synth) await initAudio();
+
+        isPlaying = true;
+        const tempo = 120; // BPM
+        const beatDuration = 60 / tempo;
+
+        for (
+          let measureIndex = 0;
+          measureIndex < measures.length && isPlaying;
+          measureIndex++
+        ) {
+          const measure = measures[measureIndex];
+          for (
+            let noteIndex = 0;
+            noteIndex < measure.length && isPlaying;
+            noteIndex++
+          ) {
+            const note = measure[noteIndex];
+            if (!note.duration.includes("r")) {
+              // Skip rests
+              const noteKey = note.keys[0].split("/")[0];
+              const octave = note.keys[0].split("/")[1];
+              const frequency =
+                NOTE_FREQUENCIES[noteKey] * Math.pow(2, octave - 4);
+
+              synth.triggerAttackRelease(
+                frequency,
+                DURATIONS[note.duration].time
+              );
+              await new Promise((resolve) =>
+                setTimeout(
+                  resolve,
+                  beatDuration * 1000 * DURATIONS[note.duration].beats
+                )
+              );
+            }
+          }
+        }
+        isPlaying = false;
+      }
+
+      // Event Listeners
+      document.getElementById("apply-changes").addEventListener("click", () => {
+        measures = [[]];
+        currentMeasureIndex = 0;
+        initializeStaves();
+        document.getElementById("error-message").textContent = "";
+      });
+
+      document.getElementById("clear-notes").addEventListener("click", () => {
+        measures[currentMeasureIndex] = [];
+        initializeStaves();
+        document.getElementById("error-message").textContent = "";
+      });
+
+      document.getElementById("play").addEventListener("click", () => {
+        playMeasures();
+      });
+
+      document.getElementById("stop").addEventListener("click", () => {
+        isPlaying = false;
+        if (synth) synth.triggerRelease();
+      });
+
+      document.addEventListener("keydown", (e) => {
+        if (e.key === "Delete" || e.key === "Backspace") {
+          if (selectedNote) {
+            const noteElements = document.querySelectorAll(".vf-stavenote");
+            const noteIndex = Array.from(noteElements).indexOf(selectedNote);
+            if (noteIndex !== -1) {
+              measures[currentMeasureIndex].splice(noteIndex, 1);
+              selectedNote = null;
+              initializeStaves();
+            }
+          }
+        }
+      });
+
+      document.querySelectorAll(".draggable-note").forEach((note) => {
+        note.addEventListener("dragstart", (e) => {
+          e.dataTransfer.setData("text/plain", note.dataset.duration);
+        });
+      });
+
+      document.addEventListener("dragover", (e) => {
+        e.preventDefault();
+      });
+
+      document.addEventListener("drop", (e) => {
+        e.preventDefault();
+        const duration = e.dataTransfer.getData("text/plain");
+
+        const staffElements = document.querySelectorAll(".staff");
+        let targetMeasure = 0;
+
+        staffElements.forEach((staff, index) => {
+          const rect = staff.getBoundingClientRect();
+          if (e.clientX >= rect.left && e.clientX <= rect.right) {
+            targetMeasure = index;
+          }
+        });
+
+        const rect = staffElements[targetMeasure].getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+
+        addNote(duration, x, y, targetMeasure);
+      });
+
+      // Initial setup
+      initializeStaves();
+    </script>
+  </body>
+</html>

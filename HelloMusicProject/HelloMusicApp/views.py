@@ -199,7 +199,8 @@ def add_sheets_to_folder(request, folder_id):
          return redirect("sheetFolder", folder_id=folder_id)
     
 
-
+def create_music_sheet(request):
+    return render(request, 'HelloMusicApp/empty_sheet.html')
 
 
 
