@@ -122,11 +122,6 @@ def editSheet(request, sheet_id):
     # if music_sheet.user != request.user:
     #     return JsonResponse({'success': False, 'error': 'Not authorized to edit this sheet'})
 
-def sheet(request):
-    context = {}
-    return render(request,"HelloMusicApp/sheet.html",context)
-
-
 # Music sheet folder management
 @require_POST
 def create_folder(request): #need to login before create
@@ -208,8 +203,49 @@ def remove_sheets_to_folder(request, sheet_id):
 
     return JsonResponse({'success': True})
 
-    
+@require_POST
+def delete_folder(request, folder_id): 
 
+    try:    
+        # Use get_object_or_404 to find the music sheet by ID   
+        folder = get_object_or_404(MusicSheetFolder, ID=folder_id)    
+        
+        music_sheet = MusicSheet.objects.filter(folder=folder)
+     
+        music_sheet.delete()
+        
+        folder.delete()
+        
+        return JsonResponse({'success': True})
+    except MusicSheetFolder.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'Folder not found'})
+
+    # For example, if you want to check if the sheet belongs to the user, you can do:
+    # if music_sheet.user != request.user:
+    #     return JsonResponse({'success': False, 'error': 'Not authorized to delete this sheet'})
+
+
+@require_POST
+def rename_folder(request, folder_id):
+    
+    new_name = request.POST.get('name', '').strip()    
+    
+    if not new_name:
+        return JsonResponse({'success': False, 'error': 'Title cannot be empty'})
+    
+    folder = get_object_or_404(MusicSheetFolder, ID=folder_id)    
+    
+    folder.name = new_name
+    folder.save()
+
+    return JsonResponse({'success': True})
+
+# Music Notation Management
+def sheet(request):
+    context = {}
+    return render(request,"HelloMusicApp/sheet.html",context)
+
+    
 def create_music_sheet(request):
     return render(request, 'HelloMusicApp/empty_sheet.html')
 
