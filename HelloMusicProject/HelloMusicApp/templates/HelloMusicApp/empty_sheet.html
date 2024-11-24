@@ -4,9 +4,9 @@
   <head>
     <meta charset="UTF-8" />
     <title>Sheet Detail</title>
+    <link href="{% static 'HelloMusicApp/css/sheet.css' %}" rel="stylesheet" />
     <script src="{% static 'HelloMusicApp/js/vexflow.js' %}"></script>
     <script src="{% static 'HelloMusicApp/js/Tone.js' %}"></script>
-    <link href="{% static 'HelloMusicApp/css/sheet.css' %}" rel="stylesheet" />
   </head>
   <body>
     <div class="container">
@@ -69,6 +69,7 @@
       let selectedNote = null;
       let synth = null;
       let isPlaying = false;
+      let audioInitialized = false;
 
       // Duration mappings
       const DURATIONS = {
@@ -91,8 +92,11 @@
 
       // Initialize Tone.js
       async function initAudio() {
-        await Tone.start();
-        synth = new Tone.Synth().toDestination();
+        if (!audioInitialized) {
+          await Tone.start();
+          synth = new Tone.Synth().toDestination();
+          audioInitialized = true;
+        }
       }
 
       // Initialize VexFlow for each measure
@@ -102,6 +106,8 @@
         
         // Calculate number of rows needed
         const numberOfRows = Math.ceil(measures.length / 4);
+        const MEASURE_WIDTH = 300; // Increased width per measure
+        const TOTAL_WIDTH = MEASURE_WIDTH * 4 + 50; // Width for 4 measures plus padding
         
         for (let row = 0; row < numberOfRows; row++) {
             const div = document.createElement('div');
@@ -110,8 +116,7 @@
             staffContainer.appendChild(div);
     
             const renderer = new Renderer(div, Renderer.Backends.SVG);
-            // Width for 4 measures (250px each) plus some padding
-            renderer.resize(1050, 150);
+            renderer.resize(TOTAL_WIDTH, 150);
             const context = renderer.getContext();
             
             // Draw measures for this row
@@ -119,10 +124,10 @@
             const endMeasure = Math.min((row + 1) * 4, measures.length);
             
             for (let i = startMeasure; i < endMeasure; i++) {
-                const xOffset = (i % 4) * 250 + 10;
-                const stave = new Stave(xOffset, 40, 250);
+                const xOffset = (i % 4) * MEASURE_WIDTH + 10;
+                const stave = new Stave(xOffset, 40, MEASURE_WIDTH); // Subtract padding (no need)
                 
-                // Add clef and time signature only to first measure of each row
+                // Add clef and time signature for first measure of each row
                 if (i === startMeasure) {
                     const clef = document.getElementById('clef-select').value;
                     stave.addClef(clef);
@@ -141,30 +146,29 @@
       function drawMeasure(measureNotes, stave, context) {
         const { num, den } = getTimeSignature();
         const voice = new Voice({ num_beats: num, beat_value: den });
-
+    
         // Add existing notes
-        measureNotes.forEach((note) => voice.addTickable(note));
-
+        measureNotes.forEach(note => voice.addTickable(note));
+    
         // Fill with rests
         fillWithRests(voice, measureNotes);
-
+    
         const formatter = new Formatter();
-        formatter.joinVoices([voice]).format([voice], 200);
+        formatter.joinVoices([voice]).format([voice], 280); // Increased spacing for notes
         voice.draw(context, stave);
-
+    
         // Add click handlers for notes
-        context.svg
-          .querySelectorAll(".vf-stavenote")
-          .forEach((noteElement, index) => {
-            noteElement.style.cursor = "pointer";
-            noteElement.addEventListener("click", () => {
-              if (selectedNote) {
-                selectedNote.classList.remove("selected-note");
-              }
-              noteElement.classList.add("selected-note");
-              selectedNote = noteElement;
+        context.svg.querySelectorAll('.vf-stavenote')
+            .forEach((noteElement, index) => {
+                noteElement.style.cursor = 'pointer';
+                noteElement.addEventListener('click', () => {
+                    if (selectedNote) {
+                        selectedNote.classList.remove('selected-note');
+                    }
+                    noteElement.classList.add('selected-note');
+                    selectedNote = noteElement;
+                });
             });
-          });
       }
 
       function getTimeSignature() {
@@ -207,41 +211,68 @@
 
       function addNote(duration, x, y, measureIndex) {
         const position = Math.floor((y - 40) / 5);
-        const clef = document.getElementById('clef-select').value;
-        
-        const noteMap = clef === 'treble' 
-            ? ['f/5', 'e/5', 'd/5', 'c/5', 'b/4', 'a/4', 'g/4', 'f/4', 'e/4', 'd/4', 'c/4']
-            : ['a/3', 'g/3', 'f/3', 'e/3', 'd/3', 'c/3', 'b/2', 'a/2', 'g/2', 'f/2', 'e/2'];
-    
-        const snapIndex = Math.min(Math.max(Math.round(position), 0), noteMap.length - 1);
+        const clef = document.getElementById("clef-select").value;
+
+        const noteMap =
+          clef === "treble"
+            ? [
+                "f/5",
+                "e/5",
+                "d/5",
+                "c/5",
+                "b/4",
+                "a/4",
+                "g/4",
+                "f/4",
+                "e/4",
+                "d/4",
+                "c/4",
+              ]
+            : [
+                "a/3",
+                "g/3",
+                "f/3",
+                "e/3",
+                "d/3",
+                "c/3",
+                "b/2",
+                "a/2",
+                "g/2",
+                "f/2",
+                "e/2",
+              ];
+
+        const snapIndex = Math.min(
+          Math.max(Math.round(position), 0),
+          noteMap.length - 1
+        );
         const keys = [noteMap[snapIndex]];
-    
+
         const note = new Vex.Flow.StaveNote({
-            keys: keys,
-            duration: duration
+          keys: keys,
+          duration: duration,
         });
-    
+
         const currentBeats = getCurrentBeats(measureIndex);
         const { num } = getTimeSignature();
-    
+
         if (currentBeats + DURATIONS[duration].beats > num) {
-            // Create new measure when current is full
-            measures.push([]);
-            currentMeasureIndex = measures.length - 1;
-            measures[currentMeasureIndex].push(note);
+          // Create new measure when current is full
+          measures.push([]);
+          currentMeasureIndex = measures.length - 1;
+          measures[currentMeasureIndex].push(note);
         } else {
-            measures[measureIndex].push(note);
+          measures[measureIndex].push(note);
         }
-    
+
         initializeStaves();
-    }
-    
-      
+      }
+
       async function playMeasures() {
-        if (!synth) await initAudio();
+        if (!synth || !audioInitialized) return;
 
         isPlaying = true;
-        const tempo = 120; // BPM
+        const tempo = 120;
         const beatDuration = 60 / tempo;
 
         for (
@@ -257,7 +288,6 @@
           ) {
             const note = measure[noteIndex];
             if (!note.duration.includes("r")) {
-              // Skip rests
               const noteKey = note.keys[0].split("/")[0];
               const octave = note.keys[0].split("/")[1];
               const frequency =
@@ -293,8 +323,18 @@
         document.getElementById("error-message").textContent = "";
       });
 
-      document.getElementById("play").addEventListener("click", () => {
-        playMeasures();
+      document.getElementById("play").addEventListener("click", async () => {
+        try {
+          // Only initialize audio when play is clicked
+          if (!audioInitialized) {
+            await Tone.start();
+            synth = new Tone.Synth().toDestination();
+            audioInitialized = true;
+          }
+          playMeasures();
+        } catch (error) {
+          console.error("Audio playback error:", error);
+        }
       });
 
       document.getElementById("stop").addEventListener("click", () => {
@@ -322,29 +362,45 @@
         });
       });
 
-      document.addEventListener("dragover", (e) => {
-        e.preventDefault();
+      document.querySelector(".staff-scroll-container").addEventListener("dragover", (e) => {
+          e.preventDefault();
       });
-
-      document.addEventListener("drop", (e) => {
+      
+      document.querySelector('.staff-scroll-container').addEventListener('drop', (e) => {
         e.preventDefault();
-        const duration = e.dataTransfer.getData("text/plain");
-
-        const staffElements = document.querySelectorAll(".staff");
+        const duration = e.dataTransfer.getData('text/plain');
+        
+        // Get which row we're dropping on
+        const rows = document.querySelectorAll('.staff-row');
+        let targetRow = 0;
         let targetMeasure = 0;
-
-        staffElements.forEach((staff, index) => {
-          const rect = staff.getBoundingClientRect();
-          if (e.clientX >= rect.left && e.clientX <= rect.right) {
-            targetMeasure = index;
-          }
+    
+        const MEASURE_WIDTH = 300; // Match the width used in initializeStaves
+    
+        rows.forEach((row, rowIndex) => {
+            const rect = row.getBoundingClientRect();
+            if (e.clientY >= rect.top && e.clientY <= rect.bottom) {
+                targetRow = rowIndex;
+                // Calculate which measure in the row (0-3)
+                targetMeasure = Math.floor((e.clientX - rect.left) / MEASURE_WIDTH);
+                targetMeasure = Math.min(targetMeasure, 3); // Ensure we don't exceed 4 measures
+            }
         });
-
-        const rect = staffElements[targetMeasure].getBoundingClientRect();
-        const x = e.clientX - rect.left;
-        const y = e.clientY - rect.top;
-
-        addNote(duration, x, y, targetMeasure);
+    
+        // Calculate actual measure index
+        const actualMeasureIndex = (targetRow * 4) + targetMeasure;
+        
+        // Get position relative to the staff
+        const staffRect = rows[targetRow].getBoundingClientRect();
+        const x = e.clientX - staffRect.left;
+        const y = e.clientY - staffRect.top;
+        
+        // Ensure we have enough measures
+        while (measures.length <= actualMeasureIndex) {
+            measures.push([]);
+        }
+        
+        addNote(duration, x, y, actualMeasureIndex);
       });
 
       // Initial setup

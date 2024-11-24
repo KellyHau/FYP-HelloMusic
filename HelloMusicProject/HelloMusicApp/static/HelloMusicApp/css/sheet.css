@@ -55,10 +55,11 @@ select {
     padding: 20px;
     border-radius: 8px;
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    width: 1250px; /* Increased to accommodate wider measures */
 }
 
 #staff-container {
-    display: flex;
+    display: block;
     min-width: fit-content;
 }
 
@@ -103,14 +104,13 @@ button:hover {
 }
 
 .staff-container {
-    display: flex;
+    display: auto;
     flex-direction: column;
     gap: 40px;
 }
 
 .staff-row {
-    width: 1050px;
+    width: 1400px;
     height: 150px;
-    margin-bottom: 40px;
+    margin-bottom: 60px; /* Increased space between rows */
 }
-
