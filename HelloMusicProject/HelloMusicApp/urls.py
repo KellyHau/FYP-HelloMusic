@@ -10,6 +10,7 @@ urlpatterns = [
     path("createFolder/",views.create_folder, name="createFolder"),
     path("sheetFolder/<int:folder_id>/",views.music_sheet_folder, name="sheetFolder"),
     path("addSheettoFolder/<int:folder_id>/",views.add_sheets_to_folder,name="addSheettoFolder"),
+    path("removeSheettoFolder/<int:sheet_id>/",views.remove_sheets_to_folder,name="removeSheettoFolder"),
     path("folderList/",views.folderList, name="folderList"),
     path("createSheet/",views.create_sheet, name="createSheet"),
     path("deleteSheet/<int:sheet_id>/",views.delete_sheet, name="deleteSheet"),

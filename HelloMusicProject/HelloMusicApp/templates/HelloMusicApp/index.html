@@ -4,7 +4,6 @@
 
 {% block title %}Home - Hello Music{% endblock %}
 
-
 {% block content %}
 <!-- Music Sheets Grid -->
 <div class="row">
@@ -28,126 +27,12 @@
     <a href="#share" id="share-option">Share</a>
 </div>
 
-<!-- Edit Title Modal -->
-<div class="modal fade" id="editTitleModal" tabindex="-1" aria-labelledby="editTitleModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="editTitleModalLabel">Edit Music Sheet Title</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <input type="text" id="newTitle" class="form-control" placeholder="Enter new title">
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-primary" onclick="saveTitle()">Save</button>
-            </div>
-        </div>
-    </div>
-</div>
+{% include 'HelloMusicApp/partials/sheetOption.html'%}
+
 {% endblock %}
 
 {% block script_content %}
-<script>
-    const contextMenu = document.getElementById('context-menu');
-    let selectedSheetId = null;
-    let selectedTitle = null;
 
-    // Attach event listener to all elements with the 'music-sheet-item' class
-    document.querySelectorAll('.music-sheet-item').forEach(item => {
-        item.addEventListener('contextmenu', function (event) {
-            event.preventDefault(); // Prevent the default context menu
+<script src="{% static 'HelloMusicApp/js/sheetOption.js' %}"></script>
 
-            // Get the selected music sheet's ID
-            selectedSheetId = item.getAttribute('sheet-id');
-            selectedTitle = item.querySelector('.sheet-title').textContent;
-
-            // Show the custom context menu at the mouse position
-            contextMenu.style.display = 'block';
-            contextMenu.style.left = `${event.pageX}px`;
-            contextMenu.style.top = `${event.pageY}px`;
-        });
-    });
-
-    // Hide context menu on left-click 
-    document.addEventListener('click', function (event) {
-        if (!contextMenu.contains(event.target)) {
-            contextMenu.style.display = 'none';
-        }
-    });
-
-    // Hide the context menu if right-click 
-    document.addEventListener('contextmenu', function (event) {
-        if (!event.target.closest('.music-sheet-item')) {
-            contextMenu.style.display = 'none';
-        }
-    });
-
-    //delete option click handler
-    document.getElementById('delete-option').addEventListener('click', function (event) {
-        event.preventDefault();
-
-        // Show confirmation dialog
-        const confirmed = confirm("Are you sure you want to delete this music sheet?");
-
-        if (confirmed && selectedSheetId) {
-            // If confirmed, proceed to delete
-            fetch(`/deleteSheet/${selectedSheetId}/`, {
-                    method: 'POST',
-                    headers: {
-                        'X-CSRFToken': '{{ csrf_token }}', // Ensure CSRF token for Django
-                    },
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        alert("Music sheet deleted successfully.");
-                        location.reload(); // Reload or update page as needed
-                    } else {
-                        alert("Failed to delete music sheet: " + data.error);
-                    }
-                })
-                .catch(error => console.error("Error in fetch request:", error));
-        }
-
-        document.getElementById('context-menu').style.display = 'none';
-    });
-
-    //open edit window
-    document.getElementById('edit-option').addEventListener('click', function (event) {
-        event.preventDefault();
-
-        currentSheetId = selectedSheetId;
-        document.getElementById('newTitle').value = selectedTitle;
-        contextMenu.style.display = 'none';
-        $('#editTitleModal').modal('show');
-    });
-
-    //save sheet edit data
-    function saveTitle() {
-        const newTitle = document.getElementById('newTitle').value;
-
-        $.ajax({
-            url: `/editSheet/${currentSheetId}/`,
-            type: 'POST',
-            data: {
-                'title': newTitle,
-                'csrfmiddlewaretoken': '{{ csrf_token }}'
-            },
-            success: function (response) {
-                if (response.success) {
-                    // Update the title in the DOM without refreshing
-                    $(`.music-sheet-item[sheet-id=${currentSheetId}]`).find('.sheet-title').text(
-                        newTitle);
-                    $('#editTitleModal').modal('hide');
-                } else {
-                    alert(response.error);
-                }
-            },
-            error: function () {
-                alert('Error occurred while saving.');
-            }
-        });
-    }
-</script>
 {% endblock %}

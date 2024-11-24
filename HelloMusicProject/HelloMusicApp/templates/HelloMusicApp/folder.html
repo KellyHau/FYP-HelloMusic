@@ -10,6 +10,7 @@
 
 <div class="row">
 
+    <!-- Add sheet to folder  -->
     <div class="col-sm-6 col-md-4 col-lg-3" data-bs-toggle="tooltip" data-bs-placement="right"
         data-bs-original-title="Add music sheet" id="addsheetfolder">
         <div class="d-flex align-items-center justify-content-center  add-card ">
@@ -33,6 +34,13 @@
 
 </div>
 
+
+<div id="context-menu" class="custom-context-menu">
+    <a href="#edit" id="edit-option">Edit</a>
+    <a href="#delete" id="delete-option">Delete</a>
+    <a href="#remove" id="remove-option">Remove from "{{ folder.name }}"</a>
+    <a href="#share" id="share-option">Share</a>
+</div>
 
 <!-- Add Sheet to Folder Model-->
 <div class="modal fade" id="addsheetfolderModal" tabindex="-1" aria-labelledby="addsheetfolderModalLabel"
@@ -62,10 +70,12 @@
     </div>
 </div>
 
+{% include 'HelloMusicApp/partials/sheetOption.html'%}
 
 {% endblock %}
 
 {% block script_content %}
+<script src="{% static 'HelloMusicApp/js/sheetOption.js' %}"></script>
 <script>
     //open add sheet to folder model
     document.getElementById('addsheetfolder').addEventListener('click', function (event) {
@@ -81,6 +91,30 @@
         tooltipTriggerList.forEach(function (tooltipTriggerEl) {
             new bootstrap.Tooltip(tooltipTriggerEl);
         });
+    });
+
+    // remove from folder
+    $('#remove-option').on('click', function (event) {
+        event.preventDefault();
+
+        $.ajax({
+            url: `/removeSheettoFolder/${selectedSheetId}/`,
+            type: 'POST',
+            success: function (data) {
+                if (data.success) {
+                    alert(`${selectedTitle} already removed from {{folder.name}}.`);
+                    location.reload(); // Reload or update page as needed
+                } else {
+                    alert("Failed to remove music sheet: " + data.error);
+                }
+            },
+            error: function (xhr, status, error) {
+                console.error("Error in AJAX request:", error);
+            }
+        });
+
+
+        $('#context-menu').hide();
     });
 </script>
 {% endblock %}
