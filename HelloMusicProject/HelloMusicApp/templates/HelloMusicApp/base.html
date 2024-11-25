@@ -56,12 +56,12 @@
                 </div>
 
                 <div class="folder-list">
-                    {% if sheet_folder %}
+                    {% if recent_sheet_folder %}
 
-                    {% for folder in sheet_folder %}
-                    <div class="folder-item" folder-id="{{ folder.ID }}">
+                    {% for user_folder in recent_sheet_folder %}
+                    <div class="folder-item" folder-id="{{ user_folder.folder.ID }}">
                         <a class="text-white text-decoration-none"
-                            href="{% url 'sheetFolder' folder.ID %}">{{ folder.name }}</a>
+                            href="{% url 'sheetFolder' user_folder.folder.ID %}">{{ user_folder.folder.name }}</a>
                     </div>
                     {% endfor %}
 

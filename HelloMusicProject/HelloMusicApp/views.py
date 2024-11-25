@@ -9,6 +9,7 @@ from .forms import *
 from django.contrib.auth import authenticate, login as auth_login  # Rename the login method to avoid conflict
 from django.contrib import messages
 from django.contrib.auth import logout
+from django.utils.timezone import localtime, now
 
 
 def register(request):
@@ -51,12 +52,12 @@ def home(request):
     addSheetform = MusicSheetForm(initial={'title': 'Untitled Sheet'})
     addFolderform = MusicSheetFolderForm(initial={'name': 'Untitled Folder'})
     music_sheets_list = user_music_sheets_list(request)
-    user_folder_list = user_folder(request)
- 
+    recent_folder_list =  UserMusicSheetFolder.objects.filter(user=request.user).order_by('-last_accessed')[:4].select_related('folder')
+    
     
     context = {
         'music_sheets': music_sheets_list,
-        'sheet_folder': user_folder_list,
+        'recent_sheet_folder': recent_folder_list,
         'sheetform': addSheetform,
         'folderform': addFolderform
     }
@@ -134,10 +135,11 @@ def create_folder(request): #need to login before create
         UserMusicSheetFolder.objects.create(
             folder=music_sheet_folder,
             user=request.user,
+            last_accessed= localtime(),
             role='Owner' 
         )
             
-    return redirect('/')
+    return redirect('/folderList/')
 
 
 def user_folder(request):
@@ -147,22 +149,24 @@ def user_folder(request):
 def music_sheet_folder(request,folder_id):
     folder = get_object_or_404(MusicSheetFolder, ID=folder_id, users=request.user)
     folder_music_sheets = folder.music_sheets.all()
-    folder_list = user_folder(request)
-    music_sheets_list = user_music_sheets_list(request)
+    recent_folder_list =  UserMusicSheetFolder.objects.filter(user=request.user).order_by('-last_accessed')[:4].select_related('folder')
+    music_sheets_list = user_music_sheets_list(request) 
+    folder_access = get_object_or_404(UserMusicSheetFolder, folder=folder_id, user=request.user)
     
     addSheetform = MusicSheetForm(initial={'title': 'Untitled Sheet'})
     addFolderform = MusicSheetFolderForm(initial={'name': 'Untitled Folder'})
     addsheetfolderform = AddSheetsToFolderForm(initial={'selected_sheets': music_sheets_list})
+    
+    folder_access.update_access_time()
   
     context={       
         'sheetform': addSheetform,
         'folderform': addFolderform,
         'sheetfolderform': addsheetfolderform,
-        'sheet_folder': folder_list,
+        'recent_sheet_folder': recent_folder_list,
         'folder_music_sheets': folder_music_sheets,
         'folder' : folder,
-        'music_sheets' : music_sheets_list,
-            
+        'music_sheets' : music_sheets_list,            
     }
     return render(request,"HelloMusicApp/folder.html",context)
 
@@ -170,12 +174,14 @@ def folderList(request):
     addSheetform = MusicSheetForm(initial={'title': 'Untitled Sheet'})
     addFolderform = MusicSheetFolderForm(initial={'name': 'Untitled Folder'})
     user_folder_list = user_folder(request)
+    recent_folder_list =  UserMusicSheetFolder.objects.filter(user=request.user).order_by('-last_accessed')[:4].select_related('folder')
     
     
     context={       
         'sheetform': addSheetform,
         'folderform': addFolderform,
-        'sheet_folder': user_folder_list,       
+        'sheet_folder': user_folder_list,    
+        'recent_sheet_folder': recent_folder_list,   
     }
     
     return render(request,"HelloMusicApp/folderList.html",context)
@@ -183,7 +189,8 @@ def folderList(request):
 @require_POST
 def add_sheets_to_folder(request, folder_id):
     folder = get_object_or_404(MusicSheetFolder, ID=folder_id, users=request.user)
-    
+    folder_access = get_object_or_404(UserMusicSheetFolder, folder=folder_id, user=request.user)
+        
     form = AddSheetsToFolderForm(request.POST)
     
     if form.is_valid():
@@ -192,14 +199,20 @@ def add_sheets_to_folder(request, folder_id):
             sheet.folder = folder
             sheet.save()
             
-         return redirect("sheetFolder", folder_id=folder_id)
+    folder_access.update_access_time()
+    
+    return redirect("sheetFolder", folder_id=folder_id)
 
 @require_POST
-def remove_sheets_to_folder(request, sheet_id):
-    music_sheet = get_object_or_404(MusicSheet, ID=sheet_id, users=request.user)
+def remove_sheets_to_folder(request, sheet_id,folder_id):
+    music_sheet = get_object_or_404(MusicSheet, ID=sheet_id, users=request.user)   
+   
+    folder_access = get_object_or_404(UserMusicSheetFolder, folder=folder_id, user=request.user)
     
     music_sheet.folder = None
     music_sheet.save()
+    
+    folder_access.update_access_time()
 
     return JsonResponse({'success': True})
 

@@ -98,7 +98,7 @@
         event.preventDefault();
 
         $.ajax({
-            url: `/removeSheettoFolder/${selectedSheetId}/`,
+            url: `/removeSheettoFolder/${selectedSheetId}/{{folder.ID}}/`,
             type: 'POST',
             success: function (data) {
                 if (data.success) {

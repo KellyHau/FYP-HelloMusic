@@ -1,5 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import User
+from django.utils.timezone import localtime
 
 
 class MusicSheetFolder(models.Model):
@@ -12,6 +13,10 @@ class MusicSheetFolder(models.Model):
 
     def __str__(self):
         return self.name
+    
+    def update_time(self):
+        self.updatedDate = localtime()
+        self.save()
 
 
 class MusicSheet(models.Model):
@@ -34,6 +39,7 @@ class UserMusicSheet(models.Model):
     
     sheet = models.ForeignKey(MusicSheet, on_delete=models.CASCADE)
     user =  models.ForeignKey(User, on_delete=models.CASCADE)
+    last_accessed = models.DateTimeField(auto_now=True)
     role = models.CharField(
         max_length=50,
         choices=[
@@ -50,10 +56,15 @@ class UserMusicSheet(models.Model):
     def __str__(self):
         return f"{self.user.username} in {self.sheet.title} as {self.role}"
     
+    def update_access_time(self):
+        self.last_accessed = localtime()
+        self.save()
+    
     
 class UserMusicSheetFolder(models.Model):
     folder = models.ForeignKey(MusicSheetFolder, on_delete=models.CASCADE)
     user = models.ForeignKey(User, on_delete=models.CASCADE)
+    last_accessed = models.DateTimeField(auto_now=True)
     role = models.CharField(
         max_length=50,
         choices=[
@@ -69,6 +80,10 @@ class UserMusicSheetFolder(models.Model):
 
     def __str__(self):
         return f"{self.user.username} in {self.folder.name} as {self.role}"
+    
+    def update_access_time(self):
+        self.last_accessed = localtime()
+        self.save()
     
     
 class Measure(models.Model):
