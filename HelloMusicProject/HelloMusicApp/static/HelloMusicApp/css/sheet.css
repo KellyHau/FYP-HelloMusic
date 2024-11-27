@@ -49,18 +49,27 @@ select {
 }
 
 .staff-scroll-container {
-    overflow-y: auto;
-    max-height: 80vh;
+    overflow: auto;
     background: white;
     padding: 20px;
+    border: 1px solid #ccc;
     border-radius: 8px;
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    width: 1250px; /* Increased to accommodate wider measures */
+    min-height: 200px;  /* Set minimum height */
+    width: 100%;
+    position: relative;
+    cursor: default;
+}
+
+.staff-scroll-container.valid-position {
+    cursor: crosshair;
 }
 
 #staff-container {
     display: block;
     min-width: fit-content;
+    background: white;
+    /*margin: 0 auto;*/
 }
 
 button {
@@ -110,7 +119,88 @@ button:hover {
 }
 
 .staff-row {
-    width: 1400px;
+    width: fit-content;
     height: 150px;
     margin-bottom: 60px; /* Increased space between rows */
+}
+
+.staff-row > :first-child{
+    width: fit-content;
+}
+
+.accidental-controls, .articulation-controls {
+    margin-top: 15px;
+    display: flex;
+    gap: 5px;
+    justify-content: center;
+}
+
+.accidental-btn, .articulation-btn {
+    padding: 5px 10px;
+    background: #1dd6eb;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 16px;
+}
+
+.accidental-btn.active, .articulation-btn.active {
+    background: #4CAF50;
+    color: white;
+}
+
+.accidental-btn:hover, .articulation-btn:hover {
+    background: #e8e8e8;
+}
+
+.accidental-btn.active:hover, .articulation-btn.active:hover {
+    background: #45a049;
+}
+
+.tooltip {
+    background-color: rgba(0, 0, 0, 0.8);
+    color: white;
+    padding: 40px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    pointer-events: none;
+    z-index: 1001;
+}
+
+.history-controls {
+    margin-top: 15px;
+    display: flex;
+    gap: 5px;
+    justify-content: center;
+}
+
+.staff-line-highlight {
+  position: absolute;
+  left: 0;
+  width: 100%;
+  background-color: rgba(76, 175, 80, 0.3);
+  height: 2px;
+  pointer-events: none;
+  z-index: 998;
+}
+
+.staff-space-highlight {
+  position: absolute;
+  left: 0;
+  width: 100%;
+  background-color: rgba(76, 175, 80, 0.2);
+  height: 8px; 
+  pointer-events: none;
+  z-index: 997;
+}
+
+.position-tooltip {
+    position: fixed;
+    background-color: rgba(0, 0, 0, 0.8);
+    color: white;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    pointer-events: none;
+    z-index: 1001;
 }
