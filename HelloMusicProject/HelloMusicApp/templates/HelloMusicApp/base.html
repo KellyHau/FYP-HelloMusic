@@ -80,13 +80,22 @@
 
                     <!-- User Profile -->
                     <div class="d-flex align-items-center">
-                        <img src="{% static 'HelloMusicApp/images/user.png' %}" alt="User Avatar" class="avatar">
-                        <span class="text-white ms-2">Username</span>
+                        <a href="{% url 'profile' %}" style="text-decoration: none;">
+                            {% csrf_token %}
+                            {% if profile.profile_image %}
+                                <img src="{{ profile.profile_image.url }}" alt="Profile Picture" class="avatar">
+                            {% else %}
+                                <img src="{% static 'HelloMusicApp/images/user.png' %}" alt="Default Profile" class="avatar">
+                            {% endif %}
+                            <span class="text-white ms-2">{{ user.username }}</span>
+                        </a>
                     </div>
                     <div>
                         <form action="{% url 'logout' %}" method="post" style="display: inline;">
                             {% csrf_token %}
-                            <button type="submit" class="btn btn-link">Logout</button>
+                            <button type="submit" class="btn btn-link p-0" style="color: inherit; text-decoration: none;">
+                                <i class="bi bi-box-arrow-right"></i>
+                            </button>
                         </form>
                     </div>
                 </div>

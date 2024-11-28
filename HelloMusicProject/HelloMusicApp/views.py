@@ -159,17 +159,40 @@ def home(request):
     addFolderform = MusicSheetFolderForm(initial={'name': 'Untitled Folder'})
     music_sheets_list = user_music_sheets_list(request)
     recent_folder_list =  UserMusicSheetFolder.objects.filter(user=request.user).order_by('-last_accessed')[:4].select_related('folder')
-    
+    profile, created = Profile.objects.get_or_create(user=request.user)
     
     context = {
         'music_sheets': music_sheets_list,
         'recent_sheet_folder': recent_folder_list,
         'sheetform': addSheetform,
-        'folderform': addFolderform
+        'folderform': addFolderform,
+        'profile': profile
     }
     
     return render(request,"HelloMusicApp/index.html",context)
 
+def profile_view(request):
+    # Get or create profile
+    profile, created = Profile.objects.get_or_create(user=request.user)
+    
+    if request.method == 'POST':
+        form = UserProfileForm(
+            request.POST, 
+            request.FILES, 
+            instance=request.user, 
+            user=request.user
+        )
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Your profile has been updated successfully!')
+            return redirect('profile')
+    else:
+        form = UserProfileForm(instance=request.user, user=request.user)
+    
+    return render(request, 'HelloMusicApp/profile.html', {
+        'form': form,
+        'profile': profile
+    })
 
 # Music sheet management
 @require_POST

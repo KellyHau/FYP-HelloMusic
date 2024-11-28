@@ -61,3 +61,50 @@ class RegisterForm(forms.ModelForm):
         if commit:
             user.save()
         return user        
+
+class UserProfileForm(forms.ModelForm):
+    email = forms.EmailField(
+        required=True,
+        widget=forms.EmailInput(attrs={'class': 'form-control'})
+    )
+    profile_image = forms.ImageField(
+        required=False,
+        widget=forms.FileInput(attrs={
+            'class': 'form-control',
+            'accept': 'image/jpeg,image/png,image/gif'
+        })
+    )
+    
+    class Meta:
+        model = User
+        fields = ['username', 'email']
+        widgets = {
+            'username': forms.TextInput(attrs={'class': 'form-control'}),
+        }
+        
+    def __init__(self, *args, **kwargs):
+        self.user = kwargs.pop('user', None)
+        super().__init__(*args, **kwargs)
+        try:
+            self.fields['profile_image'].initial = self.user.profile.profile_image
+        except Profile.DoesNotExist:
+            print("this path got error at forms.py")
+            pass
+        
+    def clean_email(self):
+        email = self.cleaned_data.get('email')
+        if User.objects.filter(email=email).exclude(pk=self.user.pk).exists():
+            raise ValidationError("This email is already in use by another account.")
+        return email
+        
+    def save(self, commit=True):
+        user = super().save(commit=False)
+        if commit:
+            user.save()
+            # Get or create profile
+            profile, created = Profile.objects.get_or_create(user=user)
+            # Update profile image if provided
+            if self.cleaned_data.get('profile_image'):
+                profile.profile_image = self.cleaned_data['profile_image']
+                profile.save()
+        return user

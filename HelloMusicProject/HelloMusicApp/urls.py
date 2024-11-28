@@ -1,5 +1,7 @@
 from . import views
 from django.urls import path
+from django.conf import settings
+from django.conf.urls.static import static
 
 
 urlpatterns = [
@@ -9,6 +11,7 @@ urlpatterns = [
     path('request-password-reset/', views.request_password_reset, name='request_password_reset'),
     path('verify-reset/<str:token>/', views.verify_reset, name='verify_reset'),
     path("",views.home, name = "home"),
+    path('profile/', views.profile_view, name='profile'),
     path("createFolder/",views.create_folder, name="createFolder"),
     path("sheetFolder/<int:folder_id>/",views.music_sheet_folder, name="sheetFolder"),
     path("addSheettoFolder/<int:folder_id>/",views.add_sheets_to_folder,name="addSheettoFolder"),
@@ -21,4 +24,4 @@ urlpatterns = [
     path('editSheet/<int:sheet_id>/', views.editSheet, name='editSheet'),
     path('sheet/', views.sheet, name='sheet'),
     path('empty_sheet/', views.create_music_sheet, name='create_music_sheet'),
-    ]
+    ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

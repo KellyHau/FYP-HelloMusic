@@ -1,6 +1,8 @@
 from django.db import models
 from django.contrib.auth.models import User
 from django.utils.timezone import localtime
+from django.core.exceptions import ValidationError
+import os
 
 class PasswordResetToken(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
@@ -12,6 +14,34 @@ class PasswordResetToken(models.Model):
 
     def __str__(self):
         return f"Password reset token for {self.user.email}"
+    
+def validate_image_format(value):
+    ext = os.path.splitext(value.name)[1]  # Get the file extension
+    valid_extensions = ['.jpg', '.jpeg', '.png', '.gif']
+    if not ext.lower() in valid_extensions:
+        raise ValidationError('Unsupported file format. Please use JPG, JPEG, PNG, or GIF.')
+
+class Profile(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE)
+    
+    def user_directory_path(instance, filename):
+        # File will be uploaded to MEDIA_ROOT/user_<id>.<extension>
+        extension = filename.split('.')[-1]
+        return f'user_{instance.user.id}.{extension}'
+
+    profile_image = models.ImageField(
+        upload_to=user_directory_path,
+        validators=[validate_image_format],
+        null=True,
+        blank=True
+    )
+    
+    def save(self, *args, **kwargs):
+        if self.pk:  # If this is an update
+            old_instance = Profile.objects.get(pk=self.pk)
+            if old_instance.profile_image and self.profile_image != old_instance.profile_image:
+                old_instance.profile_image.delete(save=False)
+        super().save(*args, **kwargs)
     
 class MusicSheetFolder(models.Model):
     
