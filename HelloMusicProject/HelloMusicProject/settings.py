@@ -86,7 +86,7 @@ DATABASES = {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': 'hellomusic',
         'USER': 'root',
-        'PASSWORD': 'lee123', #password follow your root's password
+        'PASSWORD': 'abc123', #password follow your root's password
         'HOST': '127.0.0.1',  
         'PORT': '3306',       
     }
@@ -144,3 +144,12 @@ AUTHENTICATION_BACKENDS = [
     'HelloMusicApp.backends.EmailBackend',  # Add the path to the custom backend
     'django.contrib.auth.backends.ModelBackend',  # Keep the default backend for other auth
 ]
+
+# reset password
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'  
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = 'hellomusic712@gmail.com'
+EMAIL_HOST_PASSWORD = 'dkri rkfs qror efht'
+DEFAULT_FROM_EMAIL = 'hellomusic712@gmail.com'

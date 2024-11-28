@@ -2,7 +2,7 @@ from django.shortcuts import render, redirect
 from django.contrib.auth.forms import UserCreationForm
 from django.shortcuts import get_object_or_404
 from django.contrib import messages
-from django.http import JsonResponse
+from django.http import HttpResponse, JsonResponse
 from django.views.decorators.http import require_POST
 from .models import *
 from .forms import *
@@ -10,6 +10,14 @@ from django.contrib.auth import authenticate, login as auth_login  # Rename the 
 from django.contrib import messages
 from django.contrib.auth import logout
 from django.utils.timezone import localtime, now
+from django.core.mail import send_mail
+from django.template.loader import render_to_string
+from django.utils.crypto import get_random_string
+from django.utils import timezone
+from datetime import timedelta
+from django.contrib.auth.models import User
+from django.conf import settings
+from django.views.decorators.http import require_http_methods
 
 
 def register(request):
@@ -30,18 +38,116 @@ def login_user(request):
         email = request.POST.get('email')
         password = request.POST.get('password')
 
-        # Check if the user is authenticated
-        user = authenticate(request, email=email, password=password)
-        
-        if user is not None:
-            auth_login(request, user)  # Log the user in if authentication is successful
-            return redirect('home')
-        else:
+        try:
+            # First check if user exists
+            user = User.objects.get(email=email)
+            
+            # Try authentication
+            auth_user = authenticate(request, email=email, password=password)
+            if auth_user is not None:
+                auth_login(request, auth_user)
+                return redirect('home')
+            else:
+                # Try to authenticate with the backend directly
+                from HelloMusicApp.backends import EmailBackend
+                backend = EmailBackend()
+                direct_auth = backend.authenticate(request, email=email, password=password)
+                
+                messages.error(request, 'Invalid credentials, please try again.')
+                
+        except User.DoesNotExist:
             messages.error(request, 'Invalid credentials, please try again.')
-            return render(request, 'HelloMusicApp/login.html')
-
+        except Exception as e:
+            messages.error(request, 'An error occurred during login.')
+            
     return render(request, 'HelloMusicApp/login.html')
 
+def request_password_reset(request):    
+    if request.user.is_authenticated:
+        messages.info(request, "You are already logged in.")
+        return redirect('home')
+    
+    if request.method == 'POST':
+        email = request.POST.get('email')
+        password = request.POST.get('password')
+        confirm_password = request.POST.get('confirm_password')
+        
+        try:
+            user = User.objects.get(email=email)
+            
+            if password == confirm_password:
+                token = get_random_string(64)
+                
+                # Create token record
+                reset_token = PasswordResetToken.objects.create(
+                    user=user,
+                    token=token,
+                    expires_at=timezone.now() + timedelta(hours=24),
+                    new_password=password
+                )
+                
+                reset_url = f"{request.scheme}://{request.get_host()}/verify-reset/{token}/"
+                
+                # Send email
+                try:
+                    send_mail(
+                        'Password Reset Verification - HelloMusic',
+                        '',
+                        settings.DEFAULT_FROM_EMAIL,
+                        [email],
+                        html_message=render_to_string('HelloMusicApp/reset_email.html', {
+                            'user': user,
+                            'reset_url': reset_url,
+                        }),
+                        fail_silently=False,
+                    )
+                except Exception as e:
+                    messages.error(request, "Error sending email. Please try again.")
+                    return redirect('request_password_reset')
+                
+                messages.success(request, "Please check your email to verify your password reset request.")
+                return redirect('login')
+            else:
+                messages.error(request, "Passwords do not match.")
+        except User.DoesNotExist:
+            messages.error(request, "No user found with this email address.")
+    
+    return render(request, 'HelloMusicApp/request_reset.html')
+
+@require_http_methods(["GET"])
+def verify_reset(request, token):    
+    try:
+        # Query the token and print result
+        reset_token = PasswordResetToken.objects.filter(
+            token=token,
+            used=False,
+            expires_at__gt=timezone.now()
+        ).first()
+        
+        if reset_token is None:
+            print("DEBUG: No valid token found")
+            messages.error(request, "Invalid or expired reset link.")
+            return redirect('request_password_reset')
+        
+        # Get user and update password
+        user = reset_token.user
+        new_password = reset_token.new_password
+        
+        # Update password
+        user.set_password(new_password)
+        user.save()
+        
+        # Mark token as used
+        reset_token.used = True
+        reset_token.save()
+        
+        messages.success(request, "Your password has been reset successfully.")
+        return redirect('login')
+        
+    except Exception as e:
+        messages.error(request, "An error occurred during password reset.")
+        return redirect('request_password_reset')
+    
 def logout_user(request):
     logout(request)
     messages.success(request, 'You have successfully logged out.')
