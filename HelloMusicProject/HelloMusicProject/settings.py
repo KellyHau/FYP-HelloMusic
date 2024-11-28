@@ -146,15 +146,15 @@ AUTHENTICATION_BACKENDS = [
     'django.contrib.auth.backends.ModelBackend',  # Keep the default backend for other auth
 ]
 
-# reset password
+
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-EMAIL_HOST = 'smtp.gmail.com'  
+EMAIL_HOST = 'smtp.sendgrid.net'
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
-EMAIL_HOST_USER = 'hellomusic712@gmail.com'
-EMAIL_HOST_PASSWORD = 'dkri rkfs qror efht'
-DEFAULT_FROM_EMAIL = 'hellomusic712@gmail.com'
+EMAIL_HOST_USER = 'apikey' 
+EMAIL_HOST_PASSWORD = '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'  
+DEFAULT_FROM_EMAIL = 'hellomusic090@gmail.com'
 
 # Profile Image
 MEDIA_URL = '/media/'
-MEDIA_ROOT = os.path.join(BASE_DIR, 'HelloMusicApp','static', 'HelloMusicApp','user_images')
+MEDIA_ROOT = os.path.join(BASE_DIR, 'HelloMusicApp','static', 'HelloMusicApp','user_images') 

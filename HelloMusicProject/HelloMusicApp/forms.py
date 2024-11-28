@@ -15,7 +15,7 @@ class MusicSheetFolderForm(forms.ModelForm):
 
 class AddSheetsToFolderForm(forms.Form):
     selected_sheets = forms.ModelMultipleChoiceField(
-        queryset=MusicSheet.objects.none(),
+        queryset=MusicSheet.objects.all(),
         widget=forms.SelectMultiple(attrs={
             'class': 'form-control',
             'id': 'sheetSelection',
@@ -30,6 +30,7 @@ class AddSheetsToFolderForm(forms.Form):
         super().__init__(*args, **kwargs)
         if user:  # Filter queryset by user
             self.fields['selected_sheets'].queryset = MusicSheet.objects.filter(users=user)
+            
 
 
 class RegisterForm(forms.ModelForm):
