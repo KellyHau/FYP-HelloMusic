@@ -97,3 +97,44 @@ function saveTitle() {
         }
     });
 }
+
+
+//open share window
+document.getElementById('share-option').addEventListener('click', function (event) {
+    event.preventDefault();
+
+    currentSheetId = selectedSheetId;
+    document.getElementById('shareSheetModalLabel').textContent = `Share "${selectedTitle}"`;
+    contextMenu.style.display = 'none';
+    $('#shareSheetModal').modal('show');
+});
+
+
+//save share user permission
+function savePermission() {
+    const email = document.getElementById("email").value;
+    const role = document.getElementById("role").value;
+
+
+    $.ajax({
+        url: `/editSheet/${currentSheetId}/`,
+        type: 'POST',
+        data: {
+            'title': newTitle,
+        },
+        success: function (response) {
+            if (response.success) {
+                // Update the title in the DOM without refreshing
+                $(`.music-sheet-item[sheet-id=${currentSheetId}]`).find('.sheet-title').text(
+                    newTitle);
+                $('#editTitleModal').modal('hide');
+            } else {
+                alert(response.error);
+            }
+        },
+        error: function () {
+            alert('Error occurred while saving.');
+        }
+    });
+}
+
