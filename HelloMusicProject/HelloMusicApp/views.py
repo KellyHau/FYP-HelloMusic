@@ -155,7 +155,7 @@ def music_sheet_folder(request,folder_id):
     
     addSheetform = MusicSheetForm(initial={'title': 'Untitled Sheet'})
     addFolderform = MusicSheetFolderForm(initial={'name': 'Untitled Folder'})
-    addsheetfolderform = AddSheetsToFolderForm(initial={'selected_sheets': music_sheets_list})
+    addsheetfolderform = AddSheetsToFolderForm(user=request.user)
     
     folder_access.update_access_time()
   
