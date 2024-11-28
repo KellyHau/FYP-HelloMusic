@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        .email-container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+        }
+        .button {
+            display: inline-block;
+            padding: 10px 20px;
+            background-color: #5e7374;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="email-container">
+        <h2>Hello {{ user.username }}, </h2>
+        <p>We received a request to reset your password for your HelloMusic account.</p>
+        <p>Click the button below to confirm your password reset:</p>
+        
+        <a href="{{ reset_url }}">{{ reset_url }}</a>
+        
+        <p>If you didn't request this password reset, you can safely ignore this email. Your password won't be changed.</p>
+        <p>This link will expire in 24 hours.</p>
+        
+        <p>Best regards,<br>HelloMusic Team</p>
+    </div>
+</body>
+</html>

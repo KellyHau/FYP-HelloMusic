@@ -1,0 +1,131 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reset Password - HelloMusic</title>
+    <link href="{% static 'HelloMusicApp/css/bootstrap.min.css' %}" rel="stylesheet">
+    <link href="{% static 'HelloMusicApp/css/registration.css' %}" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+    <style>
+        .btn-reset {
+            width: 100%;
+            padding: 10px;
+            background: linear-gradient(to right, #5e7374, #b0d8da);
+            border: none;
+            color: white;
+            font-size: 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 20px;
+        }
+
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="left-side">
+            <h1 class="form-title">Reset Password</h1>
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="alert alert-{{ message.tags }}" style="color: {% if message.tags == 'error' %}red{% else %}green{% endif %};">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+
+            <form method="post" id="resetPasswordForm">
+                {% csrf_token %}
+                <div class="form-group">
+                    <input type="email" name="email" placeholder="Email Address" required>
+                </div>
+
+                <div class="form-group">
+                    <input type="password" id="password" name="password" 
+                           placeholder="New Password (min 6 characters with at least 1 letter and 1 number)" required>
+                    <i class="fa fa-eye-slash show-password" onclick="togglePassword('password')"></i>
+                    <div id="password-error" class="error-message">
+                        *Password must be at least 6 characters long and contain at least 1 letter and 1 number.
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <input type="password" id="confirm-password" name="confirm_password" 
+                           placeholder="Confirm New Password" required>
+                    <i class="fa fa-eye-slash show-password" onclick="togglePassword('confirm-password')"></i>
+                    <div id="confirm-password-error" class="error-message">
+                        *Passwords do not match.
+                    </div>
+                </div>
+
+                <button type="submit" class="btn-reset">Reset Password</button>
+
+                <div class="login-link">
+                    Remember your password? <a href="{% url 'login' %}" style="color: #2f89e0; text-decoration: none">Login</a>
+                </div>
+            </form>
+        </div>
+
+        <div class="right-side">
+            <img src="{% static 'HelloMusicApp/images/logo.png' %}" alt="HelloMusic Logo" class="img-fluid w-100">
+            <div class="slogan">
+                <p>Where music meets creativity!</p>
+            </div>
+            <div class="floating-notes">
+                <i class="fa fa-music note"></i>
+                <i class="fa fa-music note"></i>
+                <i class="fa fa-music note"></i>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function togglePassword(id) {
+            const passwordField = document.getElementById(id);
+            const icon = passwordField.nextElementSibling;
+
+            if (passwordField.type === "password") {
+                passwordField.type = "text";
+                icon.classList.remove("fa-eye-slash");
+                icon.classList.add("fa-eye");
+            } else {
+                passwordField.type = "password";
+                icon.classList.remove("fa-eye");
+                icon.classList.add("fa-eye-slash");
+            }
+        }
+
+        document.getElementById("resetPasswordForm").addEventListener("submit", function(event) {
+            let isValid = true;
+
+            // Password validation
+            const passwordField = document.getElementById("password");
+            const passwordError = document.getElementById("password-error");
+            const passwordRegex = /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d!@#$%^&*]{6,}$/;
+            
+            if (!passwordRegex.test(passwordField.value)) {
+                passwordError.style.display = "block";
+                isValid = false;
+            } else {
+                passwordError.style.display = "none";
+            }
+
+            // Confirm Password validation
+            const confirmPasswordField = document.getElementById("confirm-password");
+            const confirmPasswordError = document.getElementById("confirm-password-error");
+            
+            if (confirmPasswordField.value !== passwordField.value) {
+                confirmPasswordError.style.display = "block";
+                isValid = false;
+            } else {
+                confirmPasswordError.style.display = "none";
+            }
+
+            if (!isValid) {
+                event.preventDefault();
+            }
+        });
+    </script>
+</body>
+</html>
