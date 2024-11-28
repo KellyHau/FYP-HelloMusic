@@ -11,6 +11,21 @@ document.querySelectorAll('.music-sheet-item').forEach(item => {
         selectedSheetId = item.getAttribute('sheet-id');
         selectedTitle = item.querySelector('.sheet-title').textContent;
 
+        fetch(`/shareSheet/${selectedSheetId}/`)
+            .then(response => response.json())
+            .then(data => {
+
+                const userListContainer = document.getElementById('user_with_sheet');
+                userListContainer.innerHTML = ''; 
+                data.users.forEach(user => {
+                    const userItem = document.createElement('li');
+                    userItem.textContent = `${user.email} (${user.role})`;
+                    userListContainer.appendChild(userItem);
+                });
+            })
+            .catch(error => console.error('Error fetching sheet details:', error));
+
+
         // Show the custom context menu at the mouse position
         contextMenu.style.display = 'block';
         contextMenu.style.left = `${event.pageX}px`;
@@ -115,19 +130,18 @@ function savePermission() {
     const email = document.getElementById("email").value;
     const role = document.getElementById("role").value;
 
-
+    console.log(role);
     $.ajax({
-        url: `/editSheet/${currentSheetId}/`,
+        url: `/shareSheet/${currentSheetId}/`,
         type: 'POST',
         data: {
-            'title': newTitle,
+            'email': email,
+            'role': role,
         },
         success: function (response) {
             if (response.success) {
-                // Update the title in the DOM without refreshing
-                $(`.music-sheet-item[sheet-id=${currentSheetId}]`).find('.sheet-title').text(
-                    newTitle);
-                $('#editTitleModal').modal('hide');
+                $("#shareSheetForm")[0].reset();
+                $('#shareSheetModal').modal('hide');
             } else {
                 alert(response.error);
             }
@@ -137,4 +151,3 @@ function savePermission() {
         }
     });
 }
-

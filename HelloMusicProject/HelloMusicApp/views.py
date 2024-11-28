@@ -1,5 +1,5 @@
 from django.shortcuts import render, redirect
-from django.contrib.auth.forms import UserCreationForm
+from django.conf import settings
 from django.shortcuts import get_object_or_404
 from django.contrib import messages
 from django.http import JsonResponse
@@ -9,7 +9,8 @@ from .forms import *
 from django.contrib.auth import authenticate, login as auth_login  # Rename the login method to avoid conflict
 from django.contrib import messages
 from django.contrib.auth import logout
-from django.utils.timezone import localtime, now
+from django.utils.timezone import localtime
+from django.core.mail import send_mail
 
 
 def register(request):
@@ -185,6 +186,57 @@ def folderList(request):
     }
     
     return render(request,"HelloMusicApp/folderList.html",context)
+
+
+def share_sheet_to_user(request, sheet_id):
+
+    if request.method == "POST":
+        
+        email = request.POST.get('email', '').strip()
+        role = request.POST.get('role', '').strip()
+        
+        try:
+            user = get_object_or_404(User, email=email)
+            sheet = get_object_or_404(MusicSheet, ID=sheet_id)
+         
+            UserMusicSheet.objects.update_or_create(
+                user=user,
+                sheet=sheet,
+                role = role,
+            )
+
+            # Send email notification
+            send_mail(
+                "You've been granted access to a music sheet",
+                f"You've been granted '{role}' access to the music sheet: {sheet.title}.\n Welcome using Hello Music Application!",
+                'hellomusic090@gmail.com',
+                [email],
+                fail_silently=False,
+            )
+
+
+            return JsonResponse({'success': True})
+        except User.DoesNotExist:
+            return JsonResponse({'error': 'User not found'}, status=404)
+        except MusicSheet.DoesNotExist:
+            return JsonResponse({'error': 'Music sheet not found'}, status=404)
+    
+    if request.method == "GET":
+        users = UserMusicSheet.objects.filter(sheet=sheet_id)
+        
+        user_list = [
+            {
+                "email": user.user.username,
+                "role": user.role
+            }
+            for user in users
+        ]
+         
+        data = { 
+                "users": user_list,
+            }
+        return JsonResponse(data)
+        
 
 @require_POST
 def add_sheets_to_folder(request, folder_id):
