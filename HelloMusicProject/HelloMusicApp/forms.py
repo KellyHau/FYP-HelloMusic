@@ -28,8 +28,9 @@ class AddSheetsToFolderForm(forms.Form):
     def __init__(self, *args, **kwargs):
         user = kwargs.pop('user', None)
         super().__init__(*args, **kwargs)
-        if user:  # Filter queryset by user
-            self.fields['selected_sheets'].queryset = MusicSheet.objects.filter(users=user)
+        if user:  # Filter queryset by user 
+            owner_sheets = UserMusicSheet.objects.filter(user=user, role='owner').values_list('sheet', flat=True)
+            self.fields['selected_sheets'].queryset = MusicSheet.objects.filter(ID__in=owner_sheets,  folder__isnull=True)
             
 
 
