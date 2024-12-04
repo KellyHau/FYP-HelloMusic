@@ -18,6 +18,7 @@ from datetime import timedelta
 from django.contrib.auth.models import User
 from django.conf import settings
 from django.views.decorators.http import require_http_methods
+from django.db import transaction
 
 
 def register(request):
@@ -253,6 +254,57 @@ def editSheet(request, sheet_id):
     # if music_sheet.user != request.user:
     #     return JsonResponse({'success': False, 'error': 'Not authorized to edit this sheet'})
 
+def share_sheet_to_user(request, sheet_id):
+
+    if request.method == "POST":
+        
+        email = request.POST.get('email', '').strip()
+        role = request.POST.get('role', '').strip()
+        
+        try:
+            user = get_object_or_404(User, email=email)
+            sheet = get_object_or_404(MusicSheet, ID=sheet_id)
+         
+            UserMusicSheet.objects.update_or_create(
+                user=user,
+                sheet=sheet,
+                role = role,
+            )
+
+            # Send email notification
+            send_mail(
+                "You've been granted access to a music sheet",
+                f"You've been granted '{role}' access to the music sheet: {sheet.title}.\n Welcome using Hello Music Application!",
+                'hellomusic090@gmail.com',
+                [email],
+                fail_silently=False,
+            )
+
+
+            return JsonResponse({'success': True})
+        except User.DoesNotExist:
+            return JsonResponse({'error': 'User not found'}, status=404)
+        except MusicSheet.DoesNotExist:
+            return JsonResponse({'error': 'Music sheet not found'}, status=404)
+    
+    if request.method == "GET":
+        users = UserMusicSheet.objects.filter(sheet=sheet_id)
+        
+        user_list = [
+            {
+                "email": user.user.username,
+                "role": user.role
+            }
+            for user in users
+        ]
+         
+        data = { 
+                "users": user_list,
+            }
+        return JsonResponse(data)
+        
+
+
 # Music sheet folder management
 @require_POST
 def create_folder(request): #need to login before create
@@ -320,55 +372,6 @@ def folderList(request):
     return render(request,"HelloMusicApp/folderList.html",context)
 
 
-def share_sheet_to_user(request, sheet_id):
-
-    if request.method == "POST":
-        
-        email = request.POST.get('email', '').strip()
-        role = request.POST.get('role', '').strip()
-        
-        try:
-            user = get_object_or_404(User, email=email)
-            sheet = get_object_or_404(MusicSheet, ID=sheet_id)
-         
-            UserMusicSheet.objects.update_or_create(
-                user=user,
-                sheet=sheet,
-                role = role,
-            )
-
-            # Send email notification
-            send_mail(
-                "You've been granted access to a music sheet",
-                f"You've been granted '{role}' access to the music sheet: {sheet.title}.\n Welcome using Hello Music Application!",
-                'hellomusic090@gmail.com',
-                [email],
-                fail_silently=False,
-            )
-
-
-            return JsonResponse({'success': True})
-        except User.DoesNotExist:
-            return JsonResponse({'error': 'User not found'}, status=404)
-        except MusicSheet.DoesNotExist:
-            return JsonResponse({'error': 'Music sheet not found'}, status=404)
-    
-    if request.method == "GET":
-        users = UserMusicSheet.objects.filter(sheet=sheet_id)
-        
-        user_list = [
-            {
-                "email": user.user.username,
-                "role": user.role
-            }
-            for user in users
-        ]
-         
-        data = { 
-                "users": user_list,
-            }
-        return JsonResponse(data)
-        
 
 @require_POST
 def add_sheets_to_folder(request, folder_id):
@@ -399,6 +402,66 @@ def remove_sheets_to_folder(request, sheet_id,folder_id):
     folder_access.update_access_time()
 
     return JsonResponse({'success': True})
+
+def share_folder_to_user(request, folder_id):
+
+    if request.method == "POST":
+        
+        email = request.POST.get('email', '').strip()
+        role = request.POST.get('role', '').strip()
+        
+        try:
+            user = get_object_or_404(User, email=email)
+            folder = get_object_or_404(MusicSheetFolder, ID=folder_id)
+         
+            with transaction.atomic():
+                
+                UserMusicSheetFolder.objects.update_or_create(
+                    user=user,
+                    folder=folder,
+                    role=role,
+                )
+
+                music_sheets = MusicSheet.objects.filter(folder=folder)
+                for sheet in music_sheets:
+                    UserMusicSheet.objects.update_or_create(
+                        user=user,
+                        sheet=sheet,
+                        role = role,
+                    )
+
+                # Send email notification
+                send_mail(
+                    "You've been granted access to a Music Sheet Folder",
+                    f"You've been granted '{role}' access to the Folder: {folder.name}.\n Welcome using Hello Music Application!",
+                    'hellomusic090@gmail.com',
+                    [email],
+                    fail_silently=False,
+                )
+
+
+            return JsonResponse({'success': True})
+        except User.DoesNotExist:
+            return JsonResponse({'error': 'User not found'}, status=404)
+        except MusicSheetFolder.DoesNotExist:
+            return JsonResponse({'error': 'Folder not found'}, status=404)
+    
+    if request.method == "GET":
+        users = UserMusicSheetFolder.objects.filter(folder=folder_id)
+        
+        user_list = [
+            {
+                "email": user.user.username,
+                "role": user.role
+            }
+            for user in users
+        ]
+         
+        data = { 
+                "users": user_list,
+            }
+        return JsonResponse(data)
+        
 
 @require_POST
 def delete_folder(request, folder_id): 

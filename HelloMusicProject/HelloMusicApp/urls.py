@@ -18,6 +18,7 @@ urlpatterns = [
     path("removeSheettoFolder/<int:sheet_id>/<int:folder_id>/",views.remove_sheets_to_folder,name="removeSheettoFolder"),
     path("deleteFolder/<int:folder_id>/",views.delete_folder,name="deleteFolder"),
     path("renameFolder/<int:folder_id>/",views.rename_folder,name="renameFolder"),
+    path('shareFolder/<int:folder_id>/', views.share_folder_to_user, name='shareFolder'),
     path("folderList/",views.folderList, name="folderList"),
     path("createSheet/",views.create_sheet, name="createSheet"),
     path("deleteSheet/<int:sheet_id>/",views.delete_sheet, name="deleteSheet"),

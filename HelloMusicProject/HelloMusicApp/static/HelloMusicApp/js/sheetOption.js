@@ -130,7 +130,6 @@ function savePermission() {
     const email = document.getElementById("email").value;
     const role = document.getElementById("role").value;
 
-    console.log(role);
     $.ajax({
         url: `/shareSheet/${currentSheetId}/`,
         type: 'POST',
