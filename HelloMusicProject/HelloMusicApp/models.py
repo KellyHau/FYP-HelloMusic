@@ -33,14 +33,16 @@ class Profile(models.Model):
         upload_to=user_directory_path,
         validators=[validate_image_format],
         null=True,
-        blank=True
+        blank=True,
+        default='default_profile.png'
     )
     
     def save(self, *args, **kwargs):
         if self.pk:  # If this is an update
             old_instance = Profile.objects.get(pk=self.pk)
             if old_instance.profile_image and self.profile_image != old_instance.profile_image:
-                old_instance.profile_image.delete(save=False)
+                if old_instance.profile_image.name != 'default_profile.png':
+                    old_instance.profile_image.delete(save=False)
         super().save(*args, **kwargs)
     
 class MusicSheetFolder(models.Model):

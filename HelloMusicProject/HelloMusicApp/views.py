@@ -25,7 +25,8 @@ def register(request):
     if request.method == 'POST':
         form = RegisterForm(request.POST)
         if form.is_valid():
-            form.save() 
+            user = form.save()
+            Profile.objects.create(user=user) 
             messages.success(request, "User created successfully.")
             return redirect('/login/')
     else:
@@ -281,6 +282,7 @@ def music_sheet_folder(request,folder_id):
     recent_folder_list =  UserMusicSheetFolder.objects.filter(user=request.user).order_by('-last_accessed')[:4].select_related('folder')
     music_sheets_list = user_music_sheets_list(request) 
     folder_access = get_object_or_404(UserMusicSheetFolder, folder=folder_id, user=request.user)
+    profile, created = Profile.objects.get_or_create(user=request.user)
     
     addSheetform = MusicSheetForm(initial={'title': 'Untitled Sheet'})
     addFolderform = MusicSheetFolderForm(initial={'name': 'Untitled Folder'})
@@ -295,7 +297,8 @@ def music_sheet_folder(request,folder_id):
         'recent_sheet_folder': recent_folder_list,
         'folder_music_sheets': folder_music_sheets,
         'folder' : folder,
-        'music_sheets' : music_sheets_list,            
+        'music_sheets' : music_sheets_list,
+        'profile': profile            
     }
     return render(request,"HelloMusicApp/folder.html",context)
 
@@ -304,13 +307,14 @@ def folderList(request):
     addFolderform = MusicSheetFolderForm(initial={'name': 'Untitled Folder'})
     user_folder_list = user_folder(request)
     recent_folder_list =  UserMusicSheetFolder.objects.filter(user=request.user).order_by('-last_accessed')[:4].select_related('folder')
-    
+    profile, created = Profile.objects.get_or_create(user=request.user)
     
     context={       
         'sheetform': addSheetform,
         'folderform': addFolderform,
         'sheet_folder': user_folder_list,    
-        'recent_sheet_folder': recent_folder_list,   
+        'recent_sheet_folder': recent_folder_list,
+        'profile': profile   
     }
     
     return render(request,"HelloMusicApp/folderList.html",context)
