@@ -67,7 +67,9 @@ select {
 
 #staff-container {
     display: block;
-    min-width: fit-content;
+    width: 100%;
+    overflow-x: auto;
+    /*min-width: fit-content;*/
     background: white;
     /*margin: 0 auto;*/
 }
@@ -122,6 +124,7 @@ button:hover {
     width: fit-content;
     height: 150px;
     margin-bottom: 60px; /* Increased space between rows */
+    position: relative;
 }
 
 .staff-row > :first-child{

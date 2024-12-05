@@ -119,6 +119,7 @@
 
       // Initialize music state
       let measures = [[]];
+      let measureWidths = []; 
       let currentMeasureIndex = 0;
       let selectedNote = null;
       let synth = null;
@@ -140,7 +141,7 @@
         "qr": { ticks: 1024, beats: 1, time: "4n" },   // Quarter rest
         "8r": { ticks: 512, beats: 0.5, time: "8n" },  // Eighth rest
         "16r": { ticks: 256, beats: 0.25, time: "16n" } // Sixteenth rest
-    };
+      };
 
       // Note frequency mappings
       const NOTE_FREQUENCIES = {
@@ -235,6 +236,14 @@
         }
       };
 
+      // Constants for layout
+      const MEASURE_WIDTH = 350;
+      const MEASURE_MIN_WIDTH = 300;
+      const MEASURES_PER_ROW = 4;
+      const ROW_HEIGHT = 210;
+      const STAFF_TOP_OFFSET = 100;
+      const STAFF_LINE_SPACING = 5;
+
       // Initialize Tone.js
       async function initAudio() {
         try {
@@ -257,52 +266,11 @@
         const staffContainer = document.getElementById('staff-container');
         staffContainer.innerHTML = '';
         
-        /*
-        // Ensure at least one measure exists
-        if (measures.length === 0) {
-            measures = [[]];
-        }
-        
-        const numberOfRows = Math.ceil(measures.length / 4);
-        const MEASURE_WIDTH = 300;
-        const TOTAL_WIDTH = MEASURE_WIDTH * 4 + 50;
-        
-        for (let row = 0; row < numberOfRows; row++) {
-            const div = document.createElement('div');
-            div.className = 'staff-row';
-            div.id = `staff-row-${row}`;
-            staffContainer.appendChild(div);
-    
-            const renderer = new Vex.Flow.Renderer(div, Vex.Flow.Renderer.Backends.SVG);
-            renderer.resize(TOTAL_WIDTH, 150);
-            const context = renderer.getContext();
-            
-            const startMeasure = row * 4;
-            const endMeasure = Math.min((row + 1) * 4, measures.length);
-            
-            for (let i = startMeasure; i < endMeasure; i++) {
-                const xOffset = (i % 4) * MEASURE_WIDTH + 10;
-                const stave = new Vex.Flow.Stave(xOffset, 40, MEASURE_WIDTH);
-                
-                if (i === startMeasure) {
-                    const clef = document.getElementById('clef-select').value;
-                    stave.addClef(clef);
-                    const keySignature = document.getElementById('key-signature').value;
-                    stave.addKeySignature(keySignature);
-                    if (row === 0) {
-                        const timeSignature = document.getElementById('time-select').value;
-                        stave.addTimeSignature(timeSignature);
-                    }
-                }
-                
-                stave.setContext(context).draw();
-                drawMeasure(measures[i], stave, context);
-            }
-        }
-        */
-        // Calculate total rows needed
         const measuresPerRow = 4;
         const totalRows = Math.ceil(measures.length / measuresPerRow);
+        
+        // Reset measure widths array
+        measureWidths = [];
         
         for (let row = 0; row < totalRows; row++) {
             const div = document.createElement('div');
@@ -310,18 +278,41 @@
             div.id = `staff-row-${row}`;
             staffContainer.appendChild(div);
             
+            // Calculate widths for measures in this row
+            const startMeasureIndex = row * measuresPerRow;
+            const rowMeasures = measures.slice(startMeasureIndex, startMeasureIndex + measuresPerRow);
+            
+            // Calculate required widths
+            const rowWidths = rowMeasures.map((measure, i) => {
+                let width = MEASURE_MIN_WIDTH;
+                
+                if (measure && measure.length > 0) {
+                    // Add extra width for longer measures
+                    width = Math.max(width, MEASURE_MIN_WIDTH + (measure.length * 25));
+                }
+                
+                // Add extra space for clef and signatures if first measure
+                if (i === 0) {
+                    width += 60;
+                }
+                
+                // Store the calculated width
+                measureWidths[startMeasureIndex + i] = width;
+                return width;
+            });
+            
+            const totalRowWidth = rowWidths.reduce((sum, width) => sum + width, 0);
             const renderer = new Vex.Flow.Renderer(div, Vex.Flow.Renderer.Backends.SVG);
-            renderer.resize(1250, 150); // Width to accommodate 4 measures
+            renderer.resize(totalRowWidth, 150);
             const context = renderer.getContext();
             
-            // Draw measures for this row
-            for (let i = 0; i < measuresPerRow; i++) {
-                const measureIndex = row * measuresPerRow + i;
-                const xOffset = i * 300 + 10;
+            let currentX = 0;
+            for (let i = 0; i < measuresPerRow && (startMeasureIndex + i) < measures.length; i++) {
+                const measureIndex = startMeasureIndex + i;
+                const width = rowWidths[i];
                 
-                const stave = new Vex.Flow.Stave(xOffset, 40, 300);
+                const stave = new Vex.Flow.Stave(currentX, 40, width);
                 
-                // Add clef and key signature to first measure of each row
                 if (i === 0) {
                     const clef = document.getElementById('clef-select').value;
                     stave.addClef(clef);
@@ -332,16 +323,19 @@
                         stave.addTimeSignature(timeSignature);
                     }
                 }
+    
+                stave.setEndBarType(measureIndex === measures.length - 1 ? 
+                    Vex.Flow.Barline.type.END : Vex.Flow.Barline.type.SINGLE);
                 
                 stave.setContext(context).draw();
                 
-                // Draw measure content if it exists
                 if (measureIndex < measures.length) {
                     drawMeasure(measures[measureIndex], stave, context);
                 }
+                
+                currentX += width;
             }
         }
-
       }
 
       // Initialize preview system
@@ -379,28 +373,28 @@
         if (!measures[measureIndex]) return 0;
         
         return measures[measureIndex].reduce((sum, note) => {
-            const duration = note.duration.split("r")[0]; // Remove 'r' from rest durations
+            const duration = note.duration.replace('r', ''); // Remove 'r' from rest durations
             return sum + (DURATIONS[duration]?.beats || 0);
         }, 0);
       }
 
-      function getAccidentalSymbol(type) {
+      {% comment %} function getAccidentalSymbol(type) {
         const accidentalMap = {
             'sharp': '#',
             'flat': 'b',
             'natural': 'n'
         };
         return accidentalMap[type] || '#';
-      }
+      } {% endcomment %}
 
-      function getArticulationSymbol(type) {
+      {% comment %} function getArticulationSymbol(type) {
         const articulationMap = {
             'staccato': 'a.',
             'legato': 'a-',
             'accent': 'a>'
         };
         return articulationMap[type] || 'a.';
-      }
+      } {% endcomment %}
 
       // Add getCurrentTicks function
       function getCurrentTicks(measureIndex) {
@@ -420,6 +414,45 @@
         if (beats === 0.5) return '8';
         if (beats === 0.25) return '16';
         return 'q'; // default
+      }
+
+      function getMeasureIndexFromPosition(x, scrollLeft, currentRowIndex) {
+        const measuresPerRow = 4;
+        const rowStartIndex = currentRowIndex * measuresPerRow;
+        let currentX = 0;
+        
+        // Find which measure we're in by accumulating widths
+        for (let i = 0; i < measuresPerRow; i++) {
+            const measureIndex = rowStartIndex + i;
+            if (measureIndex >= measureWidths.length) break;
+            
+            const measureWidth = measureWidths[measureIndex];
+            if (x >= currentX && x < currentX + measureWidth) {
+                return measureIndex;
+            }
+            currentX += measureWidth;
+        }
+        
+        // If we're past all measures in this row, return the last valid measure
+        return Math.min(rowStartIndex + measuresPerRow - 1, measures.length - 1);
+      }
+    
+      function calculateRowAndMeasure(x, y, scrollLeft, scrollTop) {
+        const rowHeight = 210;
+        const rowIndex = Math.floor((y + scrollTop) / rowHeight);
+        const rowRelativeX = x; // x is already relative to the container
+        
+        return {
+            rowIndex,
+            measureIndex: getMeasureIndexFromPosition(rowRelativeX, scrollLeft, rowIndex)
+        };
+      }
+
+      // Function to calculate row and measure from coordinates
+      function calculatePositionFromCoords(x, y, scrollLeft, scrollTop) {
+        const rowIndex = Math.floor((y + scrollTop) / ROW_HEIGHT);
+        const measureIndex = rowIndex * MEASURES_PER_ROW + Math.floor((x + scrollLeft) / MEASURE_WIDTH);
+        return { rowIndex, measureIndex };
       }
 
       // Function to get note name based on staff position
@@ -461,43 +494,59 @@
         return positions[lineIndex] || null;
       }
 
-      function fillWithRests(voice, measureNotes, totalTicks) {
-        // Calculate current ticks in the measure
-        const currentTicks = measureNotes.reduce((sum, note) => {
-            const duration = note.duration.split("r")[0];
-            return sum + (DURATIONS[duration]?.ticks || 0);
-        }, 0);
-    
-        let remainingTicks = totalTicks - currentTicks;
-        
-        // Add rests to fill the remaining time
-        while (remainingTicks > 0) {
-            let restDuration;
-            // More precise rest duration selection
-            if (remainingTicks >= 4096 && remainingTicks >= totalTicks/2) restDuration = "wr";
-            else if (remainingTicks >= 2048 && remainingTicks >= totalTicks/4) restDuration = "hr";
-            else if (remainingTicks >= 1024) restDuration = "qr";
-            else if (remainingTicks >= 512) restDuration = "8r";
-            else if (remainingTicks >= 256) restDuration = "16r";
-            else break; // Prevent adding rests smaller than 16th notes
-    
+      function fillWithRests(voice, measureNotes, totalTicks, stave, context) {
+        if (!measureNotes || measureNotes.length === 0) {
+            // For empty measures, add a whole rest
             const rest = new Vex.Flow.StaveNote({
                 keys: ["b/4"],
-                duration: restDuration
+                duration: "wr"
             });
+            voice.addTickable(rest);
+        } else {
+            let currentTicks = 0;
             
-            const restTicks = DURATIONS[restDuration.slice(0, -1)].ticks;
-            if (restTicks <= remainingTicks) {
-                try {
-                    voice.addTickable(rest);
-                    remainingTicks -= restTicks;
-                } catch (error) {
-                    console.error('Error adding rest:', error);
-                    break;
-                }
-            } else {
-                break;
+            // First pass: add all existing notes
+            for (let note of measureNotes) {
+                voice.addTickable(note);
+                const duration = note.duration.replace('r', '');
+                currentTicks += DURATIONS[duration]?.ticks || 0;
             }
+            
+            // Only add rests if there's space and we need to fill the measure
+            if (currentTicks < totalTicks) {
+                let remainingTicks = totalTicks - currentTicks;
+                
+                while (remainingTicks >= 256) { // 256 ticks = 16th note
+                    let restDuration;
+                    if (remainingTicks >= 4096) restDuration = "wr";
+                    else if (remainingTicks >= 2048) restDuration = "hr";
+                    else if (remainingTicks >= 1024) restDuration = "qr";
+                    else if (remainingTicks >= 512) restDuration = "8r";
+                    else restDuration = "16r";
+                    
+                    const restTicks = DURATIONS[restDuration.replace('r', '')].ticks;
+                    if (restTicks <= remainingTicks) {
+                        const rest = new Vex.Flow.StaveNote({
+                            keys: ["b/4"],
+                            duration: restDuration
+                        });
+                        voice.addTickable(rest);
+                        remainingTicks -= restTicks;
+                    } else {
+                        break;
+                    }
+                }
+            }
+        }
+    
+        const formatter = new Vex.Flow.Formatter();
+        try {
+            const availableWidth = stave.getWidth() - (stave.getNoteStartX() - stave.getX()) - 10;
+            formatter.joinVoices([voice]);
+            formatter.format([voice], availableWidth);
+            voice.draw(context, stave);
+        } catch (error) {
+            console.error('Formatting error:', error);
         }
       }
 
@@ -521,48 +570,56 @@
       }
 
       function addNote(duration, x, y, measureIndex) {
-        const rowHeight = 210; // Match the height used in handleDragOver
+        const rowHeight = 210;
         const rowIndex = Math.floor(y / rowHeight);
         const staffTop = 100 + (rowHeight * rowIndex);
         const staffLineSpacing = 5;
         const relativeY = y - staffTop;
         const lineIndex = Math.round(relativeY / staffLineSpacing);
         
-        // Ensure valid range includes ledger lines
         if (lineIndex >= -2 && lineIndex <= 10) {
-          const clef = document.getElementById('clef-select').value;
-          const note = createNote(duration, lineIndex, clef);
-
-          const { num, den } = getTimeSignature();
-          
-          // Calculate total ticks for the measure
-          const totalTicks = 4096 * (num / den);
-          
-          // Calculate current ticks in the measure
-          const currentTicks = getCurrentTicks(measureIndex);
-          const noteTicks = DURATIONS[duration]?.ticks || 0;
-          
-          // Ensure measures array exists up to this index
-          while (measures.length <= measureIndex) {
-              measures.push([]);
-          }
-          
-          // Check if note fits in current measure
-          if (currentTicks + noteTicks > totalTicks) {
-              // Note doesn't fit, create new measure if needed
-              const nextMeasureIndex = measureIndex + 1;
-              while (measures.length <= nextMeasureIndex) {
-                  measures.push([]);
-              }
-              //measures[nextMeasureIndex].push(note);
-              measures[nextMeasureIndex].unshift(note);
-          } else {
-              // Note fits in current measure
-              measures[measureIndex].push(note);
-          }
-          
-          history.pushState();
-          initializeStaves();
+            const clef = document.getElementById('clef-select').value;
+            const note = createNote(duration, lineIndex, clef);
+            
+            const { num, den } = getTimeSignature();
+            const maxBeatsPerMeasure = num;
+            
+            // Calculate current beats in the measure
+            const currentBeats = getCurrentBeats(measureIndex);
+            const newNoteBeats = DURATIONS[duration]?.beats || 0;
+            
+            // Ensure measures array exists up to this index
+            while (measures.length <= measureIndex) {
+                measures.push([]);
+            }
+            
+            // Check if note fits in current measure
+            if (currentBeats + newNoteBeats <= maxBeatsPerMeasure) {
+                // Note fits in current measure
+                measures[measureIndex].push(note);
+            } else {
+                // Look for the next measure that has space
+                let nextMeasureIndex = measureIndex + 1;
+                while (measures.length <= nextMeasureIndex) {
+                    measures.push([]);
+                }
+                
+                const nextMeasureBeats = getCurrentBeats(nextMeasureIndex);
+                if (nextMeasureBeats + newNoteBeats <= maxBeatsPerMeasure) {
+                    measures[nextMeasureIndex].push(note);
+                } else {
+                    // If no space in next measure, create a new one
+                    measures.push([note]);
+                }
+            }
+    
+            // Log for debugging
+            console.log(`Measure ${measureIndex}: Current beats = ${currentBeats}, Adding note with beats = ${newNoteBeats}`);
+            console.log(`Time Signature: ${num}/${den}`);
+            console.log("Notes Array:", measures);
+            
+            history.pushState();
+            initializeStaves();
         }
       }
 
@@ -576,61 +633,7 @@
             resolution: Vex.Flow.RESOLUTION
         }).setMode(Vex.Flow.Voice.Mode.SOFT);  // Add SOFT mode for more forgiving timing
     
-        if (!measureNotes || measureNotes.length === 0) {
-            // For empty measures, add a whole rest
-            const rest = new Vex.Flow.StaveNote({
-                keys: ["b/4"],
-                duration: "wr"
-            });
-            voice.addTickable(rest);
-        } else {
-            let currentTicks = 0;
-            
-            // First pass: validate and add notes
-            for (let note of measureNotes) {
-                const duration = note.duration.split("r")[0];
-                const noteTicks = DURATIONS[duration]?.ticks || 0;
-                
-                if (currentTicks + noteTicks <= totalTicks) {
-                    voice.addTickable(note);
-                    currentTicks += noteTicks;
-                }
-            }
-            
-            // Only add rests if there's space
-            if (currentTicks < totalTicks) {
-                let remainingTicks = totalTicks - currentTicks;
-                
-                while (remainingTicks >= 256) { // Minimum 16th note rest
-                    let restDuration;
-                    if (remainingTicks >= 4096 && remainingTicks >= totalTicks/2) restDuration = "wr";
-                    else if (remainingTicks >= 2048 && remainingTicks >= totalTicks/4) restDuration = "hr";
-                    else if (remainingTicks >= 1024) restDuration = "qr";
-                    else if (remainingTicks >= 512) restDuration = "8r";
-                    else restDuration = "16r";
-                    
-                    const restTicks = DURATIONS[restDuration.slice(0, -1)].ticks;
-                    if (restTicks <= remainingTicks) {
-                        const rest = new Vex.Flow.StaveNote({
-                            keys: ["b/4"],
-                            duration: restDuration
-                        });
-                        voice.addTickable(rest);
-                        remainingTicks -= restTicks;
-                    } else {
-                        break;
-                    }
-                }
-            }
-        }
-    
-        const formatter = new Vex.Flow.Formatter();
-        try {
-            formatter.joinVoices([voice]).format([voice], stave.getWidth() - 50);
-            voice.draw(context, stave);
-        } catch (error) {
-            console.error('Formatting error:', error);
-        }
+        fillWithRests(voice, measureNotes, totalTicks, stave, context);
       }
       
       async function playMeasures() {
@@ -723,81 +726,57 @@
         
         const staffContainer = e.currentTarget;
         const staffRect = staffContainer.getBoundingClientRect();
-        const scrollTop = staffContainer.scrollTop;
         const scrollLeft = staffContainer.scrollLeft;
+        const scrollTop = staffContainer.scrollTop;
         
-        const x = e.clientX - staffRect.left + scrollLeft;
-        const y = e.clientY - staffRect.top + scrollTop;
+        const x = e.clientX - staffRect.left;
+        const y = e.clientY - staffRect.top;
         
-        // Calculate row based on y position
-        const rowHeight = 210; // Height of each staff row including margin (150px + 60px margin)
-        const rowIndex = Math.floor(y / rowHeight);
-
-        // Calculate the staff line/space position
-        const staffTop = 100; // Adjust based on your staff position
-        const staffLineSpacing = 5; // Distance between staff lines
-        const relativeY = y - staffTop;
+        const rowHeight = 210;
+        const currentRowIndex = Math.floor((y + scrollTop) / rowHeight);
+        const measureIndex = getMeasureIndexFromPosition(x, scrollLeft, currentRowIndex);
+        
+        // Calculate staff position
+        const staffTop = 100 + (rowHeight * currentRowIndex);
+        const staffLineSpacing = 5;
+        const relativeY = y - staffTop + scrollTop;
         const lineIndex = Math.round(relativeY / staffLineSpacing);
         
-        // Get clef type
         const clef = document.getElementById('clef-select').value;
-
-        // Get number of measures to determine valid rows
-        const totalMeasures = measures.length;
-        const totalRows = Math.ceil(totalMeasures / 4);
-        const isValidRow = rowIndex < totalRows;
-
-        // Create or update tooltip
-        let tooltip = document.querySelector('.position-tooltip');
-        if (!tooltip) {
-            tooltip = document.createElement('div');
-            tooltip.className = 'position-tooltip tooltip';
-            document.body.appendChild(tooltip);
-        }
-
-        // Only show tooltip if within valid staff range and on a valid row
-        if (lineIndex >= -2 && lineIndex <= 10 && isValidRow) {  // Include full range for ledger lines          
-        // Get note position info
-        const positionInfo = getNoteNameFromPosition(lineIndex, clef);
         
-        // Only show tooltip if position is valid
-        if (positionInfo) {
-            const snapPosition = staffTop + (lineIndex * staffLineSpacing);
-            const isOnLine = Math.abs(relativeY - (lineIndex * staffLineSpacing)) < 2;
-
-            // Update tooltip content
-            tooltip.textContent = `${positionInfo.note.toUpperCase()} ${positionInfo.type}`;
-            tooltip.style.left = `${e.pageX + 10}px`;
-            tooltip.style.top = `${e.pageY + 10}px`;
-            tooltip.style.display = 'block';
-            
-            if (positionInfo.type === 'line') {
-                staffLineHighlight.style.display = 'block';
-                staffLineHighlight.style.top = `${snapPosition}px`;
-                staffLineHighlight.style.left = '0';
-                staffLineHighlight.style.width = '100%';
-                staffSpaceHighlight.style.display = 'none';
-            } else {
-                staffSpaceHighlight.style.display = 'block';
-                staffSpaceHighlight.style.top = `${snapPosition - 4}px`;
-                staffSpaceHighlight.style.left = '0';
-                staffSpaceHighlight.style.width = '100%';
-                staffLineHighlight.style.display = 'none';
+        if (lineIndex >= -2 && lineIndex <= 10) {
+            const positionInfo = getNoteNameFromPosition(lineIndex, clef);
+            if (positionInfo) {
+                const snapPosition = staffTop + (lineIndex * staffLineSpacing);
+                
+                // Update highlights
+                if (positionInfo.type === 'line') {
+                    staffLineHighlight.style.display = 'block';
+                    staffLineHighlight.style.top = `${snapPosition}px`;
+                    staffLineHighlight.style.left = '0';
+                    staffLineHighlight.style.width = '100%';
+                    staffSpaceHighlight.style.display = 'none';
+                } else {
+                    staffSpaceHighlight.style.display = 'block';
+                    staffSpaceHighlight.style.top = `${snapPosition - 4}px`;
+                    staffSpaceHighlight.style.left = '0';
+                    staffSpaceHighlight.style.width = '100%';
+                    staffLineHighlight.style.display = 'none';
+                }
+                
+                // Update tooltip
+                let tooltip = document.querySelector('.position-tooltip');
+                if (!tooltip) {
+                    tooltip = document.createElement('div');
+                    tooltip.className = 'position-tooltip tooltip';
+                    document.body.appendChild(tooltip);
+                }
+                
+                tooltip.textContent = `${positionInfo.note.toUpperCase()} ${positionInfo.type} (Measure ${measureIndex + 1})`;
+                tooltip.style.left = `${e.pageX + 10}px`;
+                tooltip.style.top = `${e.pageY + 10}px`;
+                tooltip.style.display = 'block';
             }
-          } else {
-              // Hide everything if position is invalid
-              tooltip.style.display = 'none';
-              staffLineHighlight.style.display = 'none';
-              staffSpaceHighlight.style.display = 'none';
-          }
-
-          ////////// later try to test, if useless then remove
-          if (positionInfo) {
-            e.currentTarget.classList.add('valid-position');
-          } else {
-              e.currentTarget.classList.remove('valid-position');
-          }
-          
         }
       }
       
@@ -815,44 +794,42 @@
 
       function handleDrop(e) {
         e.preventDefault();
-        const duration = e.dataTransfer.getData('text/plain');
+        const duration = draggedDuration;
         
-        // Get the staff container and its properties
         const staffContainer = e.currentTarget;
         const staffRect = staffContainer.getBoundingClientRect();
-        
-        // Calculate exact position relative to staff
-        const staffTop = 40; // Starting Y position of the staff
-        const staffLineSpacing = 10; // Space between staff lines
-
-        // Get cursor position relative to staff container
-        const scrollLeft = staffContainer.scrollLeft - 30;
+        const scrollLeft = staffContainer.scrollLeft;
         const scrollTop = staffContainer.scrollTop;
-        const x = e.clientX - staffRect.left + scrollLeft;
-        const y = e.clientY - staffRect.top + scrollTop;
-
-        // Calculate staff line position
-        const relativeY = y - staffTop;
+        
+        const x = e.clientX - staffRect.left;
+        const y = e.clientY - staffRect.top;
+        
+        const rowHeight = 210;
+        const currentRowIndex = Math.floor((y + scrollTop) / rowHeight);
+        const measureIndex = getMeasureIndexFromPosition(x, scrollLeft, currentRowIndex);
+        
+        // Calculate staff position
+        const staffTop = 100 + (rowHeight * currentRowIndex);
+        const staffLineSpacing = 5;
+        const relativeY = y - staffTop + scrollTop;
         const lineIndex = Math.round(relativeY / staffLineSpacing);
         
-        // Calculate measure index considering scroll position
-        const measureWidth = 300;
-        const measureIndex = Math.floor(x / measureWidth);
-
-        // Validate position is within staff bounds
-        if (lineIndex >= -2 && lineIndex <= 11) { // 11 possible positions (5 lines + 4 spaces + 2 ledger lines)
-          addNote(duration, x, y, measureIndex);
+        if (lineIndex >= -2 && lineIndex <= 11) {
+            addNote(duration, x, y, measureIndex);
         }
         
-        // Hide highlights after dropping
+        // Clean up
         staffLineHighlight.style.display = 'none';
         staffSpaceHighlight.style.display = 'none';
-
-        // Clean up tooltip
         const tooltip = document.querySelector('.position-tooltip');
-        if (tooltip) {
-            tooltip.style.display = 'none';
-        }
+        if (tooltip) tooltip.style.display = 'none';
+      }
+
+      // Helper function to hide highlights and tooltip
+      function hideHighlightsAndTooltip(tooltip) {
+        if (tooltip) tooltip.style.display = 'none';
+        staffLineHighlight.style.display = 'none';
+        staffSpaceHighlight.style.display = 'none';
       }
 
       // Event Listeners
