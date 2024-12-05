@@ -3,14 +3,21 @@
     gap: 20px;
     padding: 20px;
     font-family: Arial, sans-serif;
+    height: 100vh;
+    box-sizing: border-box;
 }
 
 .controls {
+    overflow: auto;
     width: 200px;
     padding: 15px;
     background: #f0f0f0;
     border-radius: 8px;
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    overflow-y: auto; /* Enable vertical scrolling */
+    height: calc(100vh - 40px); /* Full height minus container padding */
+    position: sticky;
+    top: 20px;
 }
 
 .control-group {
@@ -22,6 +29,10 @@
     margin-bottom: 5px;
     color: #333;
     font-weight: bold;
+}
+
+.controls > :last-child {
+    margin-bottom: 20px;
 }
 
 select {
@@ -49,6 +60,8 @@ select {
 }
 
 .staff-scroll-container {
+    flex: 1;
+    height: calc(100vh - 40px);
     overflow: auto;
     background: white;
     padding: 20px;
@@ -56,7 +69,6 @@ select {
     border-radius: 8px;
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     min-height: 200px;  /* Set minimum height */
-    width: 100%;
     position: relative;
     cursor: default;
 }

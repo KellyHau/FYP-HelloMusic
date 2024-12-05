@@ -457,41 +457,30 @@
 
       // Function to get note name based on staff position
       function getNoteNameFromPosition(lineIndex, clef) {
-        // Define valid positions and notes for each clef - ordered from bottom to top
-        const treblePositions = {
-            10: { note: "c/4", type: "line" },    // Ledger line C4
-            9: { note: "d/4", type: "space" },    // Space between ledger and staff
-            8: { note: "e/4", type: "line" },     // Bottom line
-            7: { note: "f/4", type: "space" },
-            6: { note: "g/4", type: "line" },
-            5: { note: "a/4", type: "space" },
-            4: { note: "b/4", type: "line" },
-            3: { note: "c/5", type: "space" },
-            2: { note: "d/5", type: "line" },
-            1: { note: "e/5", type: "space" },
-            0: { note: "f/5", type: "line" },
-            "-1": { note: "g/5", type: "space" },   // Space above staff
-            "-2": { note: "a/5", type: "line" }     // Ledger line above
+        // Define positions for both clefs using the same visual position mapping
+        const notePositions = {
+            10: { treble: "c/4", bass: "e/2", type: "line" },    // Bottom ledger line
+            9: { treble: "d/4", bass: "f/2", type: "space" },    // Space between ledger lines
+            8: { treble: "e/4", bass: "g/2", type: "line" },     // Bottom line of staff
+            7: { treble: "f/4", bass: "a/2", type: "space" },    // First space
+            6: { treble: "g/4", bass: "b/2", type: "line" },     // Second line
+            5: { treble: "a/4", bass: "c/3", type: "space" },    // Second space
+            4: { treble: "b/4", bass: "d/3", type: "line" },     // Middle line
+            3: { treble: "c/5", bass: "e/3", type: "space" },    // Third space
+            2: { treble: "d/5", bass: "f/3", type: "line" },     // Fourth line
+            1: { treble: "e/5", bass: "g/3", type: "space" },    // Fourth space
+            0: { treble: "f/5", bass: "a/3", type: "line" },     // Top line
+            "-1": { treble: "g/5", bass: "b/3", type: "space" }, // Space above staff
+            "-2": { treble: "a/5", bass: "c/4", type: "line" }   // Top ledger line
         };
     
-        const bassPositions = {
-            10: { note: "e/2", type: "line" },    // Ledger line
-            9: { note: "f/2", type: "space" },    // Space between ledger and staff
-            8: { note: "g/2", type: "line" },     // Bottom line
-            7: { note: "a/2", type: "space" },
-            6: { note: "b/2", type: "line" },
-            5: { note: "c/3", type: "space" },
-            4: { note: "d/3", type: "line" },
-            3: { note: "e/3", type: "space" },
-            2: { note: "f/3", type: "line" },
-            1: { note: "g/3", type: "space" },
-            0: { note: "a/3", type: "line" },
-            "-1": { note: "b/3", type: "space" },   // Space above staff
-            "-2": { note: "c/4", type: "line" }     // Ledger line above
-        };
+        const position = notePositions[lineIndex];
+        if (!position) return null;
     
-        const positions = clef === "treble" ? treblePositions : bassPositions;
-        return positions[lineIndex] || null;
+        return {
+            note: clef === "treble" ? position.treble : position.bass,
+            type: position.type
+        };
       }
 
       function fillWithRests(voice, measureNotes, totalTicks, stave, context) {
@@ -558,12 +547,13 @@
         if (!positionInfo) {
             return null;
         }
-
-        // Create the note with the correct pitch
+    
+        // Create the note with the correct pitch but keep the original line position
         const note = new Vex.Flow.StaveNote({
             keys: [positionInfo.note],
             duration: duration,
-            auto_stem: true
+            auto_stem: true,
+            clef: clef  // Explicitly set the clef
         });
         
         return note;
@@ -581,45 +571,41 @@
             const clef = document.getElementById('clef-select').value;
             const note = createNote(duration, lineIndex, clef);
             
-            const { num, den } = getTimeSignature();
-            const maxBeatsPerMeasure = num;
-            
-            // Calculate current beats in the measure
-            const currentBeats = getCurrentBeats(measureIndex);
-            const newNoteBeats = DURATIONS[duration]?.beats || 0;
-            
-            // Ensure measures array exists up to this index
-            while (measures.length <= measureIndex) {
-                measures.push([]);
-            }
-            
-            // Check if note fits in current measure
-            if (currentBeats + newNoteBeats <= maxBeatsPerMeasure) {
-                // Note fits in current measure
-                measures[measureIndex].push(note);
-            } else {
-                // Look for the next measure that has space
-                let nextMeasureIndex = measureIndex + 1;
-                while (measures.length <= nextMeasureIndex) {
+            if (note) {
+                const { num, den } = getTimeSignature();
+                const maxBeatsPerMeasure = num;
+                
+                // Calculate current beats in the measure
+                const currentBeats = getCurrentBeats(measureIndex);
+                const newNoteBeats = DURATIONS[duration]?.beats || 0;
+                
+                // Ensure measures array exists up to this index
+                while (measures.length <= measureIndex) {
                     measures.push([]);
                 }
                 
-                const nextMeasureBeats = getCurrentBeats(nextMeasureIndex);
-                if (nextMeasureBeats + newNoteBeats <= maxBeatsPerMeasure) {
-                    measures[nextMeasureIndex].push(note);
+                // Check if note fits in current measure
+                if (currentBeats + newNoteBeats <= maxBeatsPerMeasure) {
+                    measures[measureIndex].push(note);
                 } else {
-                    // If no space in next measure, create a new one
-                    measures.push([note]);
+                    // Look for the next measure that has space
+                    let nextMeasureIndex = measureIndex + 1;
+                    while (measures.length <= nextMeasureIndex) {
+                        measures.push([]);
+                    }
+                    
+                    const nextMeasureBeats = getCurrentBeats(nextMeasureIndex);
+                    if (nextMeasureBeats + newNoteBeats <= maxBeatsPerMeasure) {
+                        measures[nextMeasureIndex].push(note);
+                    } else {
+                        // If no space in next measure, create a new one
+                        measures.push([note]);
+                    }
                 }
+                
+                history.pushState();
+                initializeStaves();
             }
-    
-            // Log for debugging
-            console.log(`Measure ${measureIndex}: Current beats = ${currentBeats}, Adding note with beats = ${newNoteBeats}`);
-            console.log(`Time Signature: ${num}/${den}`);
-            console.log("Notes Array:", measures);
-            
-            history.pushState();
-            initializeStaves();
         }
       }
 
@@ -736,7 +722,7 @@
         const currentRowIndex = Math.floor((y + scrollTop) / rowHeight);
         const measureIndex = getMeasureIndexFromPosition(x, scrollLeft, currentRowIndex);
         
-        // Calculate staff position
+        // Calculate staff position with improved precision
         const staffTop = 100 + (rowHeight * currentRowIndex);
         const staffLineSpacing = 5;
         const relativeY = y - staffTop + scrollTop;
@@ -747,32 +733,31 @@
         if (lineIndex >= -2 && lineIndex <= 10) {
             const positionInfo = getNoteNameFromPosition(lineIndex, clef);
             if (positionInfo) {
-                const snapPosition = staffTop + (lineIndex * staffLineSpacing);
+                // Calculate precise snap position
+                const snapPosition = staffTop + (lineIndex * staffLineSpacing) - scrollTop;
                 
-                // Update highlights
+                // Update visual feedback
                 if (positionInfo.type === 'line') {
                     staffLineHighlight.style.display = 'block';
                     staffLineHighlight.style.top = `${snapPosition}px`;
-                    staffLineHighlight.style.left = '0';
-                    staffLineHighlight.style.width = '100%';
                     staffSpaceHighlight.style.display = 'none';
                 } else {
                     staffSpaceHighlight.style.display = 'block';
-                    staffSpaceHighlight.style.top = `${snapPosition - 4}px`;
-                    staffSpaceHighlight.style.left = '0';
-                    staffSpaceHighlight.style.width = '100%';
+                    staffSpaceHighlight.style.top = `${snapPosition - staffLineSpacing/2}px`;
                     staffLineHighlight.style.display = 'none';
                 }
                 
-                // Update tooltip
+                // Update tooltip with more precise information
                 let tooltip = document.querySelector('.position-tooltip');
                 if (!tooltip) {
                     tooltip = document.createElement('div');
-                    tooltip.className = 'position-tooltip tooltip';
+                    tooltip.className = 'position-tooltip';
                     document.body.appendChild(tooltip);
                 }
                 
-                tooltip.textContent = `${positionInfo.note.toUpperCase()} ${positionInfo.type} (Measure ${measureIndex + 1})`;
+                const noteName = positionInfo.note.split('/')[0].toUpperCase();
+                const octave = positionInfo.note.split('/')[1];
+                tooltip.textContent = `${noteName}${octave} (${positionInfo.type}, Measure ${measureIndex + 1})`;
                 tooltip.style.left = `${e.pageX + 10}px`;
                 tooltip.style.top = `${e.pageY + 10}px`;
                 tooltip.style.display = 'block';
