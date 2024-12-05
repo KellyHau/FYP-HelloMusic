@@ -2,7 +2,7 @@ from django.shortcuts import render, redirect
 from django.conf import settings
 from django.shortcuts import get_object_or_404
 from django.contrib import messages
-from django.http import HttpResponse, JsonResponse
+from django.http import JsonResponse
 from django.views.decorators.http import require_POST
 from .models import *
 from .forms import *
@@ -19,6 +19,7 @@ from django.contrib.auth.models import User
 from django.conf import settings
 from django.views.decorators.http import require_http_methods
 from django.db import transaction
+from django.db.models import Case, When, Value, IntegerField
 
 
 def register(request):
@@ -214,45 +215,45 @@ def create_sheet(request): #need to login before create
             
     return redirect('/')
 
-def user_music_sheets_list(request): #need to login before show it
+def user_music_sheets_list(request): 
  return MusicSheet.objects.filter(users=request.user)
 
 
 @require_POST
-def delete_sheet(request, sheet_id): #need to login and have sheet before delete it
+def delete_sheet(request, sheet_id): 
 
     try:    
-        # Use get_object_or_404 to find the music sheet by ID
         music_sheet = get_object_or_404(MusicSheet, ID=sheet_id)    
-        music_sheet.delete()
-        return JsonResponse({'success': True})
-    except MusicSheet.DoesNotExist:
-        return JsonResponse({'success': False, 'error': 'Music sheet not found'})
+        
+        user_role = UserMusicSheet.objects.filter(sheet=music_sheet, user=request.user, role='owner').first()
+        
+        if not user_role:
+            return JsonResponse({'status': False, 'mes': 'Not authorized to delete this sheet'})
 
-    # For example, if you want to check if the sheet belongs to the user, you can do:
-    # if music_sheet.user != request.user:
-    #     return JsonResponse({'success': False, 'error': 'Not authorized to delete this sheet'})
+        music_sheet.delete()
+        return JsonResponse({'status': True, 'mes': 'Music sheet deleted successfully.'})
+    
+    except MusicSheet.DoesNotExist:
+        return JsonResponse({'status': False, 'mes': 'Music sheet not found'})
     
 @require_POST
 def editSheet(request, sheet_id):
     
     new_title = request.POST.get('title', '').strip()    
     
-    if not new_title:
-        return JsonResponse({'success': False, 'error': 'Title cannot be empty'})
-    
-    # Use get_object_or_404 to find the music sheet by ID
     music_sheet = get_object_or_404(MusicSheet, ID=sheet_id)    
+    
+    user_role = UserMusicSheet.objects.filter(sheet=music_sheet, user=request.user, role__in =['owner','editor']).first()
+    
+    if not user_role:
+           return JsonResponse({'status': False, 'mes': 'Not authorized to edit this sheet'})
     
     # Update the title and save it
     music_sheet.title = new_title
     music_sheet.save()
 
-    return JsonResponse({'success': True, 'title': new_title})
+    return JsonResponse({'status': True, 'mes': 'Music sheet rename successfully.'})
 
-    # Check if the user is authorized to edit this music sheet (optional)
-    # if music_sheet.user != request.user:
-    #     return JsonResponse({'success': False, 'error': 'Not authorized to edit this sheet'})
 
 def share_sheet_to_user(request, sheet_id):
 
@@ -281,15 +282,25 @@ def share_sheet_to_user(request, sheet_id):
             )
 
 
-            return JsonResponse({'success': True})
+            return JsonResponse({'status': True, 'mes': f'Successful share to {email}'})
         except User.DoesNotExist:
-            return JsonResponse({'error': 'User not found'}, status=404)
+            return JsonResponse({'status': False, 'mes': 'User not found'})
         except MusicSheet.DoesNotExist:
-            return JsonResponse({'error': 'Music sheet not found'}, status=404)
+            return JsonResponse({'status': False, 'mes': 'Music sheet not found'})
     
     if request.method == "GET":
-        users = UserMusicSheet.objects.filter(sheet=sheet_id)
+                
+        users = UserMusicSheet.objects.filter(sheet=sheet_id).annotate(
+        role_priority=Case(
+                When(role='owner', then=Value(1)),
+                When(role='editor', then=Value(2)),
+                When(role='viewer', then=Value(3)),
+                output_field=IntegerField(),
+            )
+        ).order_by('role_priority')
         
+        current_user = UserMusicSheet.objects.filter(user=request.user,sheet=sheet_id).first()
+         
         user_list = [
             {
                 "email": user.user.username,
@@ -300,6 +311,7 @@ def share_sheet_to_user(request, sheet_id):
          
         data = { 
                 "users": user_list,
+                "current_role": current_user.role ,
             }
         return JsonResponse(data)
         
@@ -396,12 +408,18 @@ def remove_sheets_to_folder(request, sheet_id,folder_id):
    
     folder_access = get_object_or_404(UserMusicSheetFolder, folder=folder_id, user=request.user)
     
+    user_role = UserMusicSheetFolder.objects.filter(folder=folder_id, user=request.user, role__in =['owner','editor']).first()
+        
+    if not user_role:
+            return JsonResponse({'status': False, 'mes': 'Not authorized to remove sheet from folder.'})
+    
+    
     music_sheet.folder = None
     music_sheet.save()
     
     folder_access.update_access_time()
 
-    return JsonResponse({'success': True})
+    return JsonResponse({'status': True,'mes': f'{music_sheet.title} remove from {folder_access.folder.name} successfully.'})
 
 def share_folder_to_user(request, folder_id):
 
@@ -440,14 +458,24 @@ def share_folder_to_user(request, folder_id):
                 )
 
 
-            return JsonResponse({'success': True})
+            return JsonResponse({'status': True, 'mes': f'Successful share to {email}'})
         except User.DoesNotExist:
-            return JsonResponse({'error': 'User not found'}, status=404)
+            return JsonResponse({'status': False, 'mes': 'User not found'})
         except MusicSheetFolder.DoesNotExist:
-            return JsonResponse({'error': 'Folder not found'}, status=404)
+            return JsonResponse({'status': False, 'mes': 'Folder not found'})
     
     if request.method == "GET":
-        users = UserMusicSheetFolder.objects.filter(folder=folder_id)
+                
+        users = UserMusicSheetFolder.objects.filter(folder=folder_id).annotate(
+        role_priority=Case(
+                When(role='owner', then=Value(1)),
+                When(role='editor', then=Value(2)),
+                When(role='viewer', then=Value(3)),
+                output_field=IntegerField(),
+            )
+        ).order_by('role_priority')
+        
+        current_user = UserMusicSheetFolder.objects.filter(user=request.user,folder=folder_id).first()
         
         user_list = [
             {
@@ -459,6 +487,7 @@ def share_folder_to_user(request, folder_id):
          
         data = { 
                 "users": user_list,
+                "current_role": current_user.role ,
             }
         return JsonResponse(data)
         
@@ -467,38 +496,47 @@ def share_folder_to_user(request, folder_id):
 def delete_folder(request, folder_id): 
 
     try:    
-        # Use get_object_or_404 to find the music sheet by ID   
+    
         folder = get_object_or_404(MusicSheetFolder, ID=folder_id)    
         
         music_sheet = MusicSheet.objects.filter(folder=folder)
-     
+        
+        user_role = UserMusicSheetFolder.objects.filter(folder=folder, user=request.user, role='owner').first()
+        
+        if not user_role:
+            return JsonResponse({'status': False, 'mes': 'Not authorized to delete this folder'})
+
         music_sheet.delete()
         
         folder.delete()
         
-        return JsonResponse({'success': True})
+        return JsonResponse({'status': True, 'mes': 'Folder deleted successfully.'})
+    
     except MusicSheetFolder.DoesNotExist:
-        return JsonResponse({'success': False, 'error': 'Folder not found'})
-
-    # For example, if you want to check if the sheet belongs to the user, you can do:
-    # if music_sheet.user != request.user:
-    #     return JsonResponse({'success': False, 'error': 'Not authorized to delete this sheet'})
+        return JsonResponse({'status': False, 'mes': 'Folder not found'})
 
 
 @require_POST
 def rename_folder(request, folder_id):
     
-    new_name = request.POST.get('name', '').strip()    
+    try:
     
-    if not new_name:
-        return JsonResponse({'success': False, 'error': 'Title cannot be empty'})
-    
-    folder = get_object_or_404(MusicSheetFolder, ID=folder_id)    
-    
-    folder.name = new_name
-    folder.save()
+        new_name = request.POST.get('name', '').strip()    
+        
+        folder = get_object_or_404(MusicSheetFolder, ID=folder_id)    
+        
+        user_role = UserMusicSheetFolder.objects.filter(folder=folder, user=request.user, role__in =['owner','editor']).first()
+        
+        if not user_role:
+            return JsonResponse({'status': False, 'mes': 'Not authorized to edit this folder'})
+        
+        folder.name = new_name
+        folder.save()
 
-    return JsonResponse({'success': True})
+        return JsonResponse({'success': True, 'mes': 'Folder rename successfully.'})
+
+    except MusicSheetFolder.DoesNotExist:
+        return JsonResponse({'status': False, 'mes': 'Folder not found'})
 
 # Music Notation Management
 def sheet(request):

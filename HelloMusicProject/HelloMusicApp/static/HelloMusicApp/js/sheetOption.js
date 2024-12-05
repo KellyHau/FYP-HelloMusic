@@ -1,6 +1,7 @@
 const contextMenu = document.getElementById('context-menu');
 let selectedSheetId = null;
 let selectedTitle = null;
+let user_role = null;
 
 // Attach event listener to all elements with the 'music-sheet-item' class
 document.querySelectorAll('.music-sheet-item').forEach(item => {
@@ -11,12 +12,15 @@ document.querySelectorAll('.music-sheet-item').forEach(item => {
         selectedSheetId = item.getAttribute('sheet-id');
         selectedTitle = item.querySelector('.sheet-title').textContent;
 
+        document.getElementById('sheet-name').textContent = selectedTitle;
+
         fetch(`/shareSheet/${selectedSheetId}/`)
             .then(response => response.json())
             .then(data => {
 
                 const userListContainer = document.getElementById('user_with_sheet');
-                userListContainer.innerHTML = ''; 
+                userListContainer.innerHTML = '';
+                user_role = data.current_role;
                 data.users.forEach(user => {
                     const userItem = document.createElement('li');
                     userItem.textContent = `${user.email} (${user.role})`;
@@ -51,27 +55,29 @@ document.addEventListener('contextmenu', function (event) {
 $('#delete-option').on('click', function (event) {
     event.preventDefault();
 
-    // Show confirmation dialog
-    const confirmed = confirm("Are you sure you want to delete this music sheet?");
+    const deleteModal = new bootstrap.Modal(document.getElementById('deleteSheetModal'));
+    deleteModal.show();
 
-    if (confirmed && selectedSheetId) {
-        // If confirmed, proceed to delete
+
+    document.getElementById('confirmDeleteSheet').addEventListener('click', function () {
+
         $.ajax({
             url: `/deleteSheet/${selectedSheetId}/`,
             type: 'POST',
             success: function (data) {
-                if (data.success) {
-                    alert("Music sheet deleted successfully.");
-                    location.reload(); // Reload or update page as needed
+                deleteModal.hide();
+                if (data.status) {
+                    triggerAction('success', `${data.mes}`);
                 } else {
-                    alert("Failed to delete music sheet: " + data.error);
+                    showAlert('warning', `Failed to delete music sheet : ${data.mes}`);
                 }
             },
             error: function (xhr, status, error) {
+                showAlert('danger', 'An error occurred while deleting the music sheet.');
                 console.error("Error in AJAX request:", error);
             }
         });
-    }
+    });
 
     $('#context-menu').hide();
 });
@@ -98,17 +104,17 @@ function saveTitle() {
             'title': newTitle,
         },
         success: function (response) {
-            if (response.success) {
-                // Update the title in the DOM without refreshing
-                $(`.music-sheet-item[sheet-id=${currentSheetId}]`).find('.sheet-title').text(
-                    newTitle);
-                $('#editTitleModal').modal('hide');
+            $('#editTitleModal').modal('hide');
+            if (response.status) {
+                $(`.music-sheet-item[sheet-id=${currentSheetId}]`).find('.sheet-title').text(newTitle);
+                showAlert('success', `${response.mes}`);
             } else {
-                alert(response.error);
+                showAlert('warning', `Failed to edit music sheet : ${response.mes}`);
             }
         },
-        error: function () {
-            alert('Error occurred while saving.');
+        error: function (xhr, status, error) {
+            showAlert('danger', 'An error occurred while edit the music sheet.');
+            console.error("Error in AJAX request:", error);
         }
     });
 }
@@ -121,6 +127,13 @@ document.getElementById('share-option').addEventListener('click', function (even
     currentSheetId = selectedSheetId;
     document.getElementById('shareSheetModalLabel').textContent = `Share "${selectedTitle}"`;
     contextMenu.style.display = 'none';
+
+    if (user_role === "Viewer" || user_role === "viewer") {
+        $('#user_role').hide();
+    } else {
+        $('#user_role').show();
+    }
+
     $('#shareSheetModal').modal('show');
 });
 
@@ -138,15 +151,17 @@ function savePermission() {
             'role': role,
         },
         success: function (response) {
-            if (response.success) {
+            $('#shareSheetModal').modal('hide');
+            if (response.status) {
                 $("#shareSheetForm")[0].reset();
-                $('#shareSheetModal').modal('hide');
+                showAlert('success', `${response.mes}`);
             } else {
-                alert(response.error);
+                showAlert('warning', `Failed to share music sheet : ${response.mes}`);
             }
         },
-        error: function () {
-            alert('Error occurred while saving.');
+        error: function (xhr, status, error) {
+            showAlert('danger', 'An error occurred while share the music sheet.');
+            console.error("Error in AJAX request:", error);
         }
     });
 }
