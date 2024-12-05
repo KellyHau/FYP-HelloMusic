@@ -63,7 +63,7 @@
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="submit" class="btn btn-primary">Add to Folder</button>
+                    <button type="submit" class="btn btn-success">Add to Folder</button>
                 </div>
             </form>
         </div>
@@ -101,14 +101,14 @@
             url: `/removeSheettoFolder/${selectedSheetId}/{{folder.ID}}/`,
             type: 'POST',
             success: function (data) {
-                if (data.success) {
-                    alert(`${selectedTitle} already removed from {{folder.name}}.`);
-                    location.reload(); // Reload or update page as needed
+                if (data.status) {
+                    triggerAction('success', `${data.mes}`);
                 } else {
-                    alert("Failed to remove music sheet: " + data.error);
+                    showAlert('warning', `Failed to remove music sheet from folder : ${data.mes}`);
                 }
             },
             error: function (xhr, status, error) {
+                showAlert('danger', 'An error occurred while remove the sheet from folder.');
                 console.error("Error in AJAX request:", error);
             }
         });

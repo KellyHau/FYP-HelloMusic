@@ -10,7 +10,33 @@
                 <input type="text" id="newTitle" class="form-control" placeholder="Enter new title">
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-primary" onclick="saveTitle()">Save</button>
+                <button type="button" class="btn btn-success" onclick="saveTitle()">Save</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete model-->
+<div class="modal fade" id="deleteSheetModal" tabindex="-1" aria-labelledby="deleteSheetModalLabel"
+    aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteSheetModalLabel">Confirm Deletion</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>
+                    Are you sure you want to delete
+                    <strong class="text-danger" id="sheet-name"></strong>?<br>
+                    <span class="text-danger">
+                        *Warning: The sheet will be permenant delete!
+                    </span>
+                </p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" id="confirmDeleteSheet" class="btn btn-danger">Delete</button>
             </div>
         </div>
     </div>
@@ -32,7 +58,7 @@
                     </div>
                     <div class="mb-3" id="user_with_sheet">
                     </div>
-                    <div class="mb-3">
+                    <div class="mb-3" id="user_role">
                         <label for="role" class="form-label">Permission Role</label>
                         <select id="role" class="form-select" required>
                             <option value="editor">Editor</option>
@@ -43,7 +69,7 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-primary" onclick="savePermission()">Share</button>
+                <button type="button" class="btn btn-info" onclick="savePermission()">Share</button>
             </div>
         </div>
     </div>

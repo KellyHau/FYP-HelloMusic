@@ -47,7 +47,7 @@
 
                 <div class="mb-3">
                     <a class="text-white text-decoration-none" href="{% url 'folderList' %}">
-                        <h6 class="text-white">Folder</h6>
+                        <h6 class="text-white">Folder List</h6>
                     </a>
                 </div>
 
@@ -86,8 +86,8 @@
                             <img src="{{ profile.profile_image.url }}" alt="Profile Picture"
                                 class="avatar rounded-circle">
                             {% else %}
-                            <img src="{% static 'HelloMusicApp/user_images/default_profile.png' %}" alt="Default Profile"
-                                class="avatar rounded-circle">
+                            <img src="{% static 'HelloMusicApp/user_images/default_profile.png' %}"
+                                alt="Default Profile" class="avatar rounded-circle">
                             {% endif %}
                             <span class="ms-2 fw-semibold">{{ user.username }}</span>
                         </a>
@@ -126,7 +126,7 @@
                         </div>
                     </div>
                     <div class="modal-footer">
-                        <button type="submit" class="btn btn-primary">Create</button>
+                        <button type="submit" class="btn btn-success">Create</button>
                     </div>
                 </form>
             </div>
@@ -149,7 +149,7 @@
                         </div>
                     </div>
                     <div class="modal-footer">
-                        <button type="submit" class="btn btn-primary">Create</button>
+                        <button type="submit" class="btn btn-success">Create</button>
                     </div>
                 </form>
             </div>
@@ -186,6 +186,47 @@
 
             $('#addfolderModal').modal('show');
         });
+
+        function showAlert(type, message) {
+
+            const alertHtml = `
+                <div class="alert alert-dismissible alert-${type} custom-alert" role="alert">
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    ${message}
+                </div>
+            `;
+
+            // Append alert to the alert container
+            const alertElement = document.createElement('div');
+            alertElement.innerHTML = alertHtml;
+            document.body.appendChild(alertElement);
+
+            setTimeout(() => {
+                alertElement.remove();
+            }, 5000);
+        }
+
+        function triggerAction(type, message) {
+            localStorage.setItem('alertMessage', JSON.stringify({
+                type,
+                message
+            }));
+            location.reload();
+        }
+
+        // Display message if available in localStorage
+        window.addEventListener('load', function () {
+            const alertData = localStorage.getItem('alertMessage');
+            if (alertData) {
+                const {
+                    type,
+                    message
+                } = JSON.parse(alertData);
+                showAlert(type, message);
+                localStorage.removeItem('alertMessage'); 
+            }
+        });
+
     </script>
     {% block script_content %}{% endblock %}
 

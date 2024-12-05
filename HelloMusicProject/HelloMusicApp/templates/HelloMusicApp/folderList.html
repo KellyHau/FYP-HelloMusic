@@ -44,7 +44,7 @@
                 <input type="text" id="newName" class="form-control" placeholder="Enter new Name">
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-primary" onclick="saveName()">Save</button>
+                <button type="button" class="btn btn-success" onclick="saveName()">Save</button>
             </div>
         </div>
     </div>
@@ -62,9 +62,9 @@
             <div class="modal-body">
                 <p>
                     Are you sure you want to delete
-                    <strong class="text-danger">{{ folder.name }}</strong>?<br>
+                    <strong class="text-danger" id="folder-name"></strong>?<br>
                     <span class="text-danger">
-                        *Warning: All sheets inside {{ folder.name }} will also be deleted!
+                        *Warning: All sheets inside this folder will also be deleted!
                     </span>
                 </p>
             </div>
@@ -92,7 +92,7 @@
                     </div>
                     <div class="mb-3" id="user_with_folder">
                     </div>
-                    <div class="mb-3">
+                    <div class="mb-3" id="user_role">
                         <label for="role" class="form-label">Permission Role</label>
                         <select id="role" class="form-select" required>
                             <option value="editor">Editor</option>
@@ -103,7 +103,7 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-primary" onclick="savePermission()">Share</button>
+                <button type="button" class="btn btn-info" onclick="savePermission()">Share</button>
             </div>
         </div>
     </div>
@@ -116,6 +116,7 @@
     const contextMenu = document.getElementById('context-menu');
     let selectedFolderId = null;
     let selectedName = null;
+    let user_role = null;
 
     // Attach event listener to all elements with the 'folder' class
     document.querySelectorAll('.folder-card').forEach(item => {
@@ -125,12 +126,15 @@
             selectedFolderId = item.getAttribute('folder-id');
             selectedName = item.querySelector('.folder-name').textContent;
 
+            document.getElementById('folder-name').textContent = selectedName;
+
             fetch(`/shareFolder/${selectedFolderId}/`)
                 .then(response => response.json())
                 .then(data => {
 
                     const userListContainer = document.getElementById('user_with_folder');
                     userListContainer.innerHTML = '';
+                    user_role = data.current_role;
                     data.users.forEach(user => {
                         const userItem = document.createElement('li');
                         userItem.textContent = `${user.email} (${user.role})`;
@@ -163,10 +167,9 @@
     });
 
 
-
+    // Show the modal when delete is clicked
     document.getElementById('delete-option').addEventListener('click', function () {
-        // Show the modal when delete is clicked
-        currentFolderId = selectedFolderId;
+
         const deleteModal = new bootstrap.Modal(document.getElementById('deleteFolderModal'));
         deleteModal.show();
 
@@ -177,14 +180,15 @@
                 url: `/deleteFolder/${selectedFolderId}/`,
                 type: 'POST',
                 success: function (data) {
-                    if (data.success) {
-                        alert(`${selectedName} have been deleted .`);
-                        location.reload(); // Reload or update page as needed
+                    deleteModal.hide();
+                    if (data.status) {
+                        triggerAction('success', `${data.mes}`);
                     } else {
-                        alert(`Failed to delete" ${selectedName} : ` + data.error);
+                        showAlert('warning', `Failed to delete folder : ${data.mes}`);
                     }
                 },
                 error: function (xhr, status, error) {
+                    showAlert('danger', 'An error occurred while deleting the folder.');
                     console.error("Error in AJAX request:", error);
                 }
             });
@@ -214,17 +218,19 @@
                 'name': newName,
             },
             success: function (response) {
-                if (response.success) {
+                $('#renameModal').modal('hide');
+                if (response.status) {
                     // Update the title in the DOM without refreshing
                     $(`.folder-card[folder-id=${currentFolderId}]`).find('.folder-name').text(
                         newName);
-                    $('#renameModal').modal('hide');
+                    showAlert('success', `${response.mes}`);
                 } else {
-                    alert(response.error);
+                    showAlert('warning', `Failed to edit folder : ${response.mes}`);
                 }
             },
-            error: function () {
-                alert('Error occurred while saving.');
+            error: function (xhr, status, error) {
+                showAlert('danger', 'An error occurred while edit the folder.');
+                console.error("Error in AJAX request:", error);
             }
         });
     }
@@ -236,6 +242,15 @@
         currentFolderId = selectedFolderId;
         document.getElementById('shareFolderModalLabel').textContent = `Share "${selectedName}"`;
         contextMenu.style.display = 'none';
+        
+        if (user_role === "Viewer" || user_role === "viewer")
+        {
+            $('#user_role').hide();
+        }
+        else{
+            $('#user_role').show();
+        }
+
         $('#shareFolderModal').modal('show');
     });
 
@@ -253,15 +268,17 @@
                 'role': role,
             },
             success: function (response) {
-                if (response.success) {
+                $('#shareFolderModal').modal('hide');
+                if (response.status) {
                     $("#shareFolderForm")[0].reset();
-                    $('#shareFolderModal').modal('hide');
+                    showAlert('success', `${response.mes}`);
                 } else {
-                    alert(response.error);
+                    showAlert('warning', `Failed to share folder : ${response.mes}`);
                 }
             },
-            error: function () {
-                alert('Error occurred while saving.');
+            error: function (xhr, status, error) {
+                showAlert('danger', 'An error occurred while share the folder.');
+                console.error("Error in AJAX request:", error);
             }
         });
     }
