@@ -20,6 +20,7 @@ from django.conf import settings
 from django.views.decorators.http import require_http_methods
 from django.db import transaction
 from django.db.models import Case, When, Value, IntegerField
+from django.db.models import Q
 
 
 def register(request):
@@ -316,7 +317,6 @@ def share_sheet_to_user(request, sheet_id):
         return JsonResponse(data)
         
 
-
 # Music sheet folder management
 @require_POST
 def create_folder(request): #need to login before create
@@ -366,6 +366,7 @@ def music_sheet_folder(request,folder_id):
     }
     return render(request,"HelloMusicApp/folder.html",context)
 
+
 def folderList(request):
     addSheetform = MusicSheetForm(initial={'title': 'Untitled Sheet'})
     addFolderform = MusicSheetFolderForm(initial={'name': 'Untitled Folder'})
@@ -382,7 +383,6 @@ def folderList(request):
     }
     
     return render(request,"HelloMusicApp/folderList.html",context)
-
 
 
 @require_POST
@@ -537,6 +537,23 @@ def rename_folder(request, folder_id):
 
     except MusicSheetFolder.DoesNotExist:
         return JsonResponse({'status': False, 'mes': 'Folder not found'})
+
+
+# Search sheet and folder
+def search_sheet_folder(request):
+    query = request.GET.get('q', '').strip()  
+    if not query:  
+        return JsonResponse({'sheets': [], 'folders': []})
+    
+    sheets = list(
+        MusicSheet.objects.filter(Q(title__icontains=query), users=request.user)
+        .values('ID', 'title')
+    )
+    folders = list(
+        MusicSheetFolder.objects.filter(Q(name__icontains=query), users=request.user)
+        .values('ID', 'name')
+    )
+    return JsonResponse({'sheets': sheets, 'folders': folders})
 
 # Music Notation Management
 def sheet(request):

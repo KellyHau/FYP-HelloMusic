@@ -24,6 +24,7 @@ urlpatterns = [
     path("deleteSheet/<int:sheet_id>/",views.delete_sheet, name="deleteSheet"),
     path('editSheet/<int:sheet_id>/', views.editSheet, name='editSheet'),
     path('shareSheet/<int:sheet_id>/', views.share_sheet_to_user, name='shareSheet'),
+    path('search/', views.search_sheet_folder, name='search'),
     path('sheet/', views.sheet, name='sheet'),
     path('empty_sheet/', views.create_music_sheet, name='create_music_sheet'),
     ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

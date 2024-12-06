@@ -73,9 +73,10 @@
             <div class="col-md-9 col-lg-10 main-content">
                 <div class="d-flex justify-content-between align-items-center mb-4">
                     <!-- Search Bar -->
-                    <div class="search-container w-50">
-                        <input type="search" class="form-control" placeholder="Search">
-                        <button type="button" class="btn-close" aria-label="Close"></button>
+                    <div class="search-container position-relative w-50">
+                        <input type="search" id="search-input" class="form-control" placeholder="Search">
+                        <div id="search-results" class="position-absolute bg-white border rounded w-100"
+                            style="max-height: 200px; overflow-y: auto; display: none;"></div>
                     </div>
 
                     <!-- User Profile -->
@@ -223,10 +224,63 @@
                     message
                 } = JSON.parse(alertData);
                 showAlert(type, message);
-                localStorage.removeItem('alertMessage'); 
+                localStorage.removeItem('alertMessage');
             }
         });
 
+        //Search sheet and folder
+        document.getElementById('search-input').addEventListener('input', function () {
+            const query = this.value.trim();
+
+            if (query.length === 0) {
+                document.getElementById('search-results').style.display = 'none';
+                document.getElementById('search-results').innerHTML = '';
+                return;
+            }
+
+
+            $.ajax({
+                url: `/search/`,
+                type: 'GET',
+                data: {
+                    q: query
+                },
+                success: function (data) {
+                    const resultsContainer = $('#search-results');
+                    resultsContainer.show();
+
+                    let resultsHTML = '';
+
+                    if (data.sheets.length > 0) {
+                        resultsHTML += `<h5 class="px-2">Music Sheets</h5><ul class="list-group">`;
+                        data.sheets.forEach(sheet => {
+                            resultsHTML +=
+                                `<li class="list-group-item"><a href="/sheet/${sheet.ID}/">${sheet.title}</a></li>`;
+                        });
+                        resultsHTML += `</ul>`;
+                    }
+
+                    if (data.folders.length > 0) {
+                        resultsHTML += `<h5 class="px-2 mt-2">Folders</h5><ul class="list-group">`;
+                        data.folders.forEach(folder => {
+                            resultsHTML +=
+                                `<li class="list-group-item"><a href="/sheetFolder/${folder.ID}/">${folder.name}</a></li>`;
+                        });
+                        resultsHTML += `</ul>`;
+                    }
+
+                    if (resultsHTML === '') {
+                        resultsHTML = `<p class="px-2 text-muted">No results found.</p>`;
+                    }
+
+                    resultsContainer.html(resultsHTML);
+                },
+                error: function (xhr, status, error) {
+                    console.error('Error fetching search results:', error);
+                }
+            });
+
+        });
     </script>
     {% block script_content %}{% endblock %}
 

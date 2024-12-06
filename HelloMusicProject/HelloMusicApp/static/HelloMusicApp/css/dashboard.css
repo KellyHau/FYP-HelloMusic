@@ -115,3 +115,21 @@
     padding: 0;
     font-size: 0.75rem;
 }
+
+/* Search */
+#search-results {
+    z-index: 1000; 
+    box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+}
+#search-results ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+#search-results ul li {
+    padding: 8px 12px;
+    cursor: pointer;
+}
+#search-results ul li:hover {
+    background-color: #f8f9fa;
+}
