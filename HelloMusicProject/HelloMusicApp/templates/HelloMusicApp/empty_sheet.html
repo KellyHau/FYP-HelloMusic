@@ -5,12 +5,28 @@
     <meta charset="UTF-8" />
     <title>Sheet Detail</title>
     <link href="{% static 'HelloMusicApp/css/sheet.css' %}" rel="stylesheet" />
-    <script src="{% static 'HelloMusicApp/js/vexflow.js' %}"></script>
-    <script src="{% static 'HelloMusicApp/js/Tone.js' %}"></script>
+    <link href="{% static 'HelloMusicApp/css/bootstrap.min.css' %}" rel="stylesheet">
   </head>
-  <body>
-    <div class="container">
-      <div class="controls">
+  <body>     
+    
+    <div class="top-menu">
+        <label for="note-palette"  class="note-palette-label">Note Palette</label>
+        <div class="note-palette">
+            <div class="draggable-note" draggable="true" data-duration="w" title="Whole Note">&#119133;</div>
+            <div class="draggable-note" draggable="true" data-duration="h" title="Half Note">&#119134;</div>
+            <div class="draggable-note" draggable="true" data-duration="q" title="Quarter Note">&#119135;</div>
+            <div class="draggable-note" draggable="true" data-duration="8" title="Eighth Note">&#119136;</div>
+            <div class="draggable-note" draggable="true" data-duration="16" title="Sixteenth Note">&#119137;</div>
+        </div>
+        <div class="playback-controls">
+            <button class="btn btn-success" id="play">Play</button>
+            <button class="btn btn-success" id="stop">Stop</button>
+        </div>
+      </div>
+
+    <div class="container-fluid custom-container">      
+      <div class="row flex-fill justify-content-center px-4">
+      <div class="col-auto me-3 controls">
         <div class="control-group">
           <label for="clef-select">Select Clef:</label>
           <select id="clef-select">
@@ -29,8 +45,8 @@
           </select>
         </div>
 
-        <button id="apply-changes">Apply Changes</button>
-        <button id="clear-notes">Clear Notes</button>
+        <button class="btn btn-success" id="apply-changes">Apply Changes</button>
+        <button class="btn btn-success mt-2" id="clear-notes">Clear Notes</button>
 
         <div class="control-group" style="margin-top:20px;">
           <label for="key-signature">Key Signature:</label>
@@ -58,24 +74,9 @@
             <button class="articulation-btn" data-articulation="accent" title="Accent">></button>
         </div> {% endcomment %}
 
-        <div class="separator"></div>
+        <div class="separator my-3"></div>
 
-        <h2>Note Palette</h2>
-            <div class="draggable-note" draggable="true" data-duration="w" title="Whole Note">
-              &#119133;
-            </div>
-            <div class="draggable-note" draggable="true" data-duration="h" title="Half Note">
-              &#119134;
-            </div>
-            <div class="draggable-note" draggable="true" data-duration="q" title="Quarter Note">
-              &#119135;
-            </div>
-            <div class="draggable-note" draggable="true" data-duration="8" title="Eighth Note">
-              &#119136;
-            </div>
-            <div class="draggable-note" draggable="true" data-duration="16" title="Sixteenth Note">
-              &#119137;
-            </div>
+  
             {% comment %} <div class="draggable-note" draggable="true" data-duration="qd" title="Dotted Quarter Note">
                 Dotted Quarter
             </div>
@@ -98,22 +99,20 @@
             </div> {% endcomment %}
 
             <div class="history-controls">
-                <button id="undo" title="Undo last action">Undo</button>
-                <button id="redo" title="Redo last action">Redo</button>
+                <button class="btn btn-success" id="undo" title="Undo last action">Undo</button>
+                <button class="btn btn-success" id="redo" title="Redo last action">Redo</button>
             </div>
-
-        <div class="playback-controls">
-          <button id="play">Play</button>
-          <button id="stop">Stop</button>
-        </div>
 
         <div id="error-message"></div>
       </div>
-      <div class="staff-scroll-container">
+      <div class="col staff-scroll-container">
         <div id="staff-container"></div>
       </div>
     </div>
+    </div>
 
+    <script src="{% static 'HelloMusicApp/js/vexflow.js' %}"></script>
+    <script src="{% static 'HelloMusicApp/js/Tone.js' %}"></script>
     <script>
       const { Factory, Renderer, Stave, Voice, Formatter } = Vex.Flow;
 

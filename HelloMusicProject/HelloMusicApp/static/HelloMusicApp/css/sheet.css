@@ -1,23 +1,29 @@
-.container {
-    display: flex;
-    gap: 20px;
-    padding: 20px;
-    font-family: Arial, sans-serif;
+body {
+    overflow: hidden;
+    /* Prevent scrolling */
     height: 100vh;
+    /* Full viewport height */
+    display: flex;
+    flex-direction: column;
+}
+
+.custom-container {
+    display: flex;
+    padding: 20px;
+    height: calc(100vh - 40px);
     box-sizing: border-box;
+    overflow: hidden;
 }
 
 .controls {
-    overflow: auto;
     width: 200px;
     padding: 15px;
     background: #f0f0f0;
     border-radius: 8px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    overflow-y: auto; /* Enable vertical scrolling */
-    height: calc(100vh - 40px); /* Full height minus container padding */
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    height: calc(100vh - 40px);
+    /* Full height minus container padding */
     position: sticky;
-    top: 20px;
 }
 
 .control-group {
@@ -31,7 +37,7 @@
     font-weight: bold;
 }
 
-.controls > :last-child {
+.controls> :last-child {
     margin-bottom: 20px;
 }
 
@@ -44,19 +50,43 @@ select {
     background: white;
 }
 
-.draggable-note {
+
+.top-menu {
+    background-color: #f4f4f4;
     padding: 10px;
-    margin: 5px;
-    background: white;
-    border: 1px solid #ccc;
+    border-bottom: 1px solid #ccc;
+    box-sizing: border-box;
+    flex-shrink: 0;
+}
+
+.note-palette-label {
+    font-weight: bold;
+    padding: 8px 12px;
+    letter-spacing: 0.05em;
+}
+
+.note-palette {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.draggable-note {
+    font-size: 24px;
+    padding: 5px 10px;
+    border: 1px solid #ddd;
     border-radius: 4px;
+    background-color: #fff;
     cursor: grab;
     text-align: center;
-    user-select: none;
 }
 
 .draggable-note:active {
     cursor: grabbing;
+}
+
+.playback-controls {
+    margin-top: 10px;
 }
 
 .staff-scroll-container {
@@ -64,11 +94,9 @@ select {
     height: calc(100vh - 40px);
     overflow: auto;
     background: white;
-    padding: 20px;
     border: 1px solid #ccc;
     border-radius: 8px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    min-height: 200px;  /* Set minimum height */
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     position: relative;
     cursor: default;
 }
@@ -88,18 +116,10 @@ select {
 
 button {
     width: 100%;
-    padding: 8px;
-    background: #4CAF50;
-    color: white;
-    border: none;
     border-radius: 4px;
     cursor: pointer;
-    margin-bottom: 10px;
 }
 
-button:hover {
-    background: #45a049;
-}
 
 #error-message {
     color: red;
@@ -107,10 +127,6 @@ button:hover {
     font-size: 0.9em;
 }
 
-.playback-controls {
-    margin-top: 20px;
-    text-align: center;
-}
 
 .playback-controls button {
     width: auto;
@@ -130,27 +146,31 @@ button:hover {
     display: auto;
     flex-direction: column;
     gap: 40px;
+    overflow-x: auto;
 }
 
 .staff-row {
     width: fit-content;
     height: 150px;
-    margin-bottom: 60px; /* Increased space between rows */
+    margin-bottom: 60px;
+    /* Increased space between rows */
     position: relative;
 }
 
-.staff-row > :first-child{
+.staff-row> :first-child {
     width: fit-content;
 }
 
-.accidental-controls, .articulation-controls {
+.accidental-controls,
+.articulation-controls {
     margin-top: 15px;
     display: flex;
     gap: 5px;
     justify-content: center;
 }
 
-.accidental-btn, .articulation-btn {
+.accidental-btn,
+.articulation-btn {
     padding: 5px 10px;
     background: #1dd6eb;
     border: 1px solid #ddd;
@@ -159,16 +179,19 @@ button:hover {
     font-size: 16px;
 }
 
-.accidental-btn.active, .articulation-btn.active {
+.accidental-btn.active,
+.articulation-btn.active {
     background: #4CAF50;
     color: white;
 }
 
-.accidental-btn:hover, .articulation-btn:hover {
+.accidental-btn:hover,
+.articulation-btn:hover {
     background: #e8e8e8;
 }
 
-.accidental-btn.active:hover, .articulation-btn.active:hover {
+.accidental-btn.active:hover,
+.articulation-btn.active:hover {
     background: #45a049;
 }
 
@@ -190,23 +213,23 @@ button:hover {
 }
 
 .staff-line-highlight {
-  position: absolute;
-  left: 0;
-  width: 100%;
-  background-color: rgba(76, 175, 80, 0.3);
-  height: 2px;
-  pointer-events: none;
-  z-index: 998;
+    position: absolute;
+    left: 0;
+    width: 100%;
+    background-color: rgba(76, 175, 80, 0.3);
+    height: 2px;
+    pointer-events: none;
+    z-index: 998;
 }
 
 .staff-space-highlight {
-  position: absolute;
-  left: 0;
-  width: 100%;
-  background-color: rgba(76, 175, 80, 0.2);
-  height: 8px; 
-  pointer-events: none;
-  z-index: 997;
+    position: absolute;
+    left: 0;
+    width: 100%;
+    background-color: rgba(76, 175, 80, 0.2);
+    height: 8px;
+    pointer-events: none;
+    z-index: 997;
 }
 
 .position-tooltip {
