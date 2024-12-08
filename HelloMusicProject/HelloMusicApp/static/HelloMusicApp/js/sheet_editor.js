@@ -5,12 +5,14 @@ let measures = [[]];
 let measureWidths = []; 
 let currentMeasureIndex = 0;
 let selectedNote = null;
+let selectedNoteSymbol = null;
 let synth = null;
 let isPlaying = false;
 let audioInitialized = false;
 let draggedDuration = null;
 let staffLineHighlight = null;
 let staffSpaceHighlight = null;
+
 
 // Duration mappings
 const DURATIONS = {
@@ -36,6 +38,8 @@ const NOTE_FREQUENCIES = {
   a: 440.0,
   b: 493.88,
 };
+
+
 
 // History management
 const history = {
@@ -309,28 +313,117 @@ function initializeStaves() {
   }
 }
 
+
 // Initialize preview system
 function initializePreviewSystem() {
   createHighlightElements();
 
   // Add drag event listeners to draggable notes
-  document.querySelectorAll('.draggable-note').forEach(note => {
-      note.addEventListener('dragstart', handleDragStart);
-      note.addEventListener('dragend', handleDragEnd);
-  });
+//   document.querySelectorAll('.draggable-note').forEach(note => {
+//       note.addEventListener('dragstart', handleDragStart);
+//       note.addEventListener('dragend', handleDragEnd);
+//   });
 
   // Add drag event listeners to staff container
   const staffContainer = document.querySelector('.staff-scroll-container');
+
+  const previewNote = document.createElement('div');
+  previewNote.className = 'preview-note';
+  staffContainer.appendChild(previewNote);
+
+    // Hide the preview note by default
+   previewNote.style.display = 'none';
+
+
+   staffContainer.addEventListener('mousemove', e => {
+       if (!selectedNote) return;
+
+       const staffRect = staffContainer.getBoundingClientRect();
+       const scrollLeft = staffContainer.scrollLeft;
+       const scrollTop = staffContainer.scrollTop;
+      
+       // Calculate x and y relative to the container
+       const x = e.clientX - staffRect.left + scrollLeft;
+       const y = e.clientY - staffRect.top + scrollTop; 
+      
+       const rowHeight = 210;
+       const currentRowIndex = Math.floor(y / rowHeight);
+       const staffTop = 80 + (rowHeight * currentRowIndex);
+       const staffLineSpacing = 5;
+       const relativeY = y - staffTop;
+       const lineIndex = Math.round(relativeY / staffLineSpacing); 
+       const measureIndex = getMeasureIndexFromPosition(x, scrollLeft, currentRowIndex);
+   
+   
+       if (lineIndex >= -2 && lineIndex <= 10) {
+         const snapPosition = staffTop + (lineIndex * staffLineSpacing);
+         
+         const clef = document.getElementById('clef-select').value;
+         
+             const positionInfo = getNoteNameFromPosition(lineIndex, clef);
+             if (positionInfo) {
+                 // Calculate position for highlighting
+                 const snapPosition = staffTop + (lineIndex * staffLineSpacing);
+                 
+                 // Update visual feedback with absolute positioning
+                 if (positionInfo.type === 'line') {
+                     staffLineHighlight.style.display = 'block';
+                     staffLineHighlight.style.top = `${snapPosition}px`;
+                     staffSpaceHighlight.style.display = 'none';
+                 } else {
+                     staffSpaceHighlight.style.display = 'block';
+                     staffSpaceHighlight.style.top = `${snapPosition - staffLineSpacing/2}px`;
+                     staffLineHighlight.style.display = 'none';
+                 }
+                 
+                 // Update tooltip
+                 let tooltip = document.querySelector('.position-tooltip');
+                 if (!tooltip) {
+                     tooltip = document.createElement('div');
+                     tooltip.className = 'position-tooltip';
+                     document.body.appendChild(tooltip);
+                 }
+                 
+                 const noteName = positionInfo.note.split('/')[0].toUpperCase();
+                 const octave = positionInfo.note.split('/')[1];
+                 tooltip.textContent = `${noteName}${octave} (${positionInfo.type}, Measure ${measureIndex + 1})`;
+                 tooltip.style.left = `${e.pageX + 10}px`;
+                 tooltip.style.top = `${e.pageY + 10}px`;
+                 tooltip.style.display = 'block';
+             }
+
+           previewNote.style.display = 'block';
+           previewNote.style.left = `${x - 8}px`; 
+           previewNote.style.top = `${snapPosition - 8}px`;
+
+       } else {
+           // Hide the preview note if out of bounds
+           previewNote.style.display = 'none';
+       }
+   });
+   
+   staffContainer.addEventListener('mouseleave', () => {
+       // Hide the preview note when leaving the staff
+       previewNote.style.display = 'none';
+       staffLineHighlight.style.display = 'none';
+       staffSpaceHighlight.style.display = 'none';
+       
+       const tooltip = document.querySelector('.position-tooltip');
+       if (tooltip) {
+           tooltip.style.display = 'none';
+       }
+   });
+   
+//   // Remove any existing listeners
+//   staffContainer.removeEventListener('dragover', handleDragOver);
+//   staffContainer.removeEventListener('dragleave', handleDragLeave);
+//   staffContainer.removeEventListener('drop', handleDrop);
   
-  // Remove any existing listeners
-  staffContainer.removeEventListener('dragover', handleDragOver);
-  staffContainer.removeEventListener('dragleave', handleDragLeave);
-  staffContainer.removeEventListener('drop', handleDrop);
-  
-  // Add fresh listeners
-  staffContainer.addEventListener('dragover', handleDragOver);
-  staffContainer.addEventListener('dragleave', handleDragLeave);
-  staffContainer.addEventListener('drop', handleDrop);
+//   // Add fresh listeners
+//   staffContainer.addEventListener('dragover', handleDragOver);
+//   staffContainer.addEventListener('dragleave', handleDragLeave);
+//   staffContainer.addEventListener('drop', handleDrop);
+
 }
 
 function getTimeSignature() {
@@ -684,138 +777,139 @@ function updateSelectableNotes() {
     });
 }
 
-function handleDragStart(e) {
-    if (e.target.classList.contains('disabled-note')) {
-        e.preventDefault();
-        return;
-    }
+// function handleDragStart(e) {
+//     if (e.target.classList.contains('disabled-note')) {
+//         e.preventDefault();
+//         return;
+//     }
     
-  draggedDuration = e.target.dataset.duration;
+//   draggedDuration = e.target.dataset.duration;
   
-  // Set drag image to be invisible
-  const dragImage = document.createElement('div');
-  dragImage.style.opacity = '0';
-  document.body.appendChild(dragImage);
-  e.dataTransfer.setDragImage(dragImage, 0, 0);
+//   // Set drag image to be invisible
+//   const dragImage = document.createElement('div');
+//   dragImage.style.opacity = '0';
+//   document.body.appendChild(dragImage);
+//   e.dataTransfer.setDragImage(dragImage, 0, 0);
   
-  setTimeout(() => dragImage.remove(), 0);
-}
+//   setTimeout(() => dragImage.remove(), 0);
+// }
 
-function handleDragEnd() {
-  draggedDuration = null;
-  staffLineHighlight.style.display = 'none';
-  staffSpaceHighlight.style.display = 'none';
+// function handleDragEnd() {
+//   draggedDuration = null;
+//   staffLineHighlight.style.display = 'none';
+//   staffSpaceHighlight.style.display = 'none';
 
-  const tooltip = document.querySelector('.position-tooltip');
-  if (tooltip) tooltip.style.display = 'none';
-}
+//   const tooltip = document.querySelector('.position-tooltip');
+//   if (tooltip) tooltip.style.display = 'none';
+// }
 
-function handleDragOver(e) {
-  e.preventDefault();
+// function handleDragOver(e) {
+//   e.preventDefault();
   
-  const staffContainer = e.currentTarget;
-  const staffRect = staffContainer.getBoundingClientRect();
-  const scrollLeft = staffContainer.scrollLeft;
-  const scrollTop = staffContainer.scrollTop;
+//   const staffContainer = e.currentTarget;
+//   const staffRect = staffContainer.getBoundingClientRect();
+//   const scrollLeft = staffContainer.scrollLeft;
+//   const scrollTop = staffContainer.scrollTop;
   
-  // Calculate x and y relative to the container's viewport position
-  const x = e.clientX - staffRect.left + scrollLeft;
-  const y = e.clientY - staffRect.top + scrollTop;
+//   // Calculate x and y relative to the container's viewport position
+//   const x = e.clientX - staffRect.left + scrollLeft;
+//   const y = e.clientY - staffRect.top + scrollTop;
   
-  const rowHeight = 210;
-  const currentRowIndex = Math.floor(y / rowHeight);
-  const measureIndex = getMeasureIndexFromPosition(x, scrollLeft, currentRowIndex);
+//   const rowHeight = 210;
+//   const currentRowIndex = Math.floor(y / rowHeight);
+//   const measureIndex = getMeasureIndexFromPosition(x, scrollLeft, currentRowIndex);
   
-  // Calculate staff position
-  const staffTop = 80 + (rowHeight * currentRowIndex);
-  const staffLineSpacing = 5;
-  const relativeY = y - staffTop;
-  const lineIndex = Math.round(relativeY / staffLineSpacing);
+//   // Calculate staff position
+//   const staffTop = 80 + (rowHeight * currentRowIndex);
+//   const staffLineSpacing = 5;
+//   const relativeY = y - staffTop;
+//   const lineIndex = Math.round(relativeY / staffLineSpacing);
   
-  const clef = document.getElementById('clef-select').value;
+//   const clef = document.getElementById('clef-select').value;
   
-  if (lineIndex >= -2 && lineIndex <= 10) {
-      const positionInfo = getNoteNameFromPosition(lineIndex, clef);
-      if (positionInfo) {
-          // Calculate position for highlighting
-          const snapPosition = staffTop + (lineIndex * staffLineSpacing);
+//   if (lineIndex >= -2 && lineIndex <= 10) {
+//       const positionInfo = getNoteNameFromPosition(lineIndex, clef);
+//       if (positionInfo) {
+//           // Calculate position for highlighting
+//           const snapPosition = staffTop + (lineIndex * staffLineSpacing);
           
-          // Update visual feedback with absolute positioning
-          if (positionInfo.type === 'line') {
-              staffLineHighlight.style.display = 'block';
-              staffLineHighlight.style.top = `${snapPosition}px`;
-              staffSpaceHighlight.style.display = 'none';
-          } else {
-              staffSpaceHighlight.style.display = 'block';
-              staffSpaceHighlight.style.top = `${snapPosition - staffLineSpacing/2}px`;
-              staffLineHighlight.style.display = 'none';
-          }
+//           // Update visual feedback with absolute positioning
+//           if (positionInfo.type === 'line') {
+//               staffLineHighlight.style.display = 'block';
+//               staffLineHighlight.style.top = `${snapPosition}px`;
+//               staffSpaceHighlight.style.display = 'none';
+//           } else {
+//               staffSpaceHighlight.style.display = 'block';
+//               staffSpaceHighlight.style.top = `${snapPosition - staffLineSpacing/2}px`;
+//               staffLineHighlight.style.display = 'none';
+//           }
           
-          // Update tooltip
-          let tooltip = document.querySelector('.position-tooltip');
-          if (!tooltip) {
-              tooltip = document.createElement('div');
-              tooltip.className = 'position-tooltip';
-              document.body.appendChild(tooltip);
-          }
+//           // Update tooltip
+//           let tooltip = document.querySelector('.position-tooltip');
+//           if (!tooltip) {
+//               tooltip = document.createElement('div');
+//               tooltip.className = 'position-tooltip';
+//               document.body.appendChild(tooltip);
+//           }
           
-          const noteName = positionInfo.note.split('/')[0].toUpperCase();
-          const octave = positionInfo.note.split('/')[1];
-          tooltip.textContent = `${noteName}${octave} (${positionInfo.type}, Measure ${measureIndex + 1})`;
-          tooltip.style.left = `${e.pageX + 10}px`;
-          tooltip.style.top = `${e.pageY + 10}px`;
-          tooltip.style.display = 'block';
-      }
-  }
-}
+//           const noteName = positionInfo.note.split('/')[0].toUpperCase();
+//           const octave = positionInfo.note.split('/')[1];
+//           tooltip.textContent = `${noteName}${octave} (${positionInfo.type}, Measure ${measureIndex + 1})`;
+//           tooltip.style.left = `${e.pageX + 10}px`;
+//           tooltip.style.top = `${e.pageY + 10}px`;
+//           tooltip.style.display = 'block';
+//       }
+//   }
+// }
 
-function handleDragLeave(e) {
-  if (!e.currentTarget.contains(e.relatedTarget)) {
-      staffLineHighlight.style.display = 'none';
-      staffSpaceHighlight.style.display = 'none';
+// function handleDragLeave(e) {
+//   if (!e.currentTarget.contains(e.relatedTarget)) {
+//       staffLineHighlight.style.display = 'none';
+//       staffSpaceHighlight.style.display = 'none';
       
-      const tooltip = document.querySelector('.position-tooltip');
-      if (tooltip) {
-          tooltip.style.display = 'none';
-      }
-  }
-}
+//       const tooltip = document.querySelector('.position-tooltip');
+//       if (tooltip) {
+//           tooltip.style.display = 'none';
+//       }
+//   }
+// }
 
-function handleDrop(e) {
-  e.preventDefault();
-  const duration = draggedDuration;
+// function handleDrop(e) {
+//   e.preventDefault();
+//   const duration = draggedDuration;
   
-  const staffContainer = e.currentTarget;
-  const staffRect = staffContainer.getBoundingClientRect();
-  const scrollLeft = staffContainer.scrollLeft;
-  const scrollTop = staffContainer.scrollTop;
+//   const staffContainer = e.currentTarget;
+//   const staffRect = staffContainer.getBoundingClientRect();
+//   const scrollLeft = staffContainer.scrollLeft;
+//   const scrollTop = staffContainer.scrollTop;
   
-  // Calculate x and y relative to the container's viewport position
-  const x = e.clientX - staffRect.left + scrollLeft;
-  const y = e.clientY - staffRect.top + scrollTop;
+//   // Calculate x and y relative to the container's viewport position
+//   const x = e.clientX - staffRect.left + scrollLeft;
+//   const y = e.clientY - staffRect.top + scrollTop;
   
-  const rowHeight = 210;
-  const currentRowIndex = Math.floor(y / rowHeight);
-  const measureIndex = getMeasureIndexFromPosition(x, scrollLeft, currentRowIndex);
+//   const rowHeight = 210;
+//   const currentRowIndex = Math.floor(y / rowHeight);
+//   const measureIndex = getMeasureIndexFromPosition(x, scrollLeft, currentRowIndex);
   
-  // Calculate staff position
-  const staffTop = 80 + (rowHeight * currentRowIndex);
-  const staffLineSpacing = 5;
-  const relativeY = y - staffTop;
-  const lineIndex = Math.round(relativeY / staffLineSpacing);
+//   // Calculate staff position
+//   const staffTop = 80 + (rowHeight * currentRowIndex);
+//   const staffLineSpacing = 5;
+//   const relativeY = y - staffTop;
+//   const lineIndex = Math.round(relativeY / staffLineSpacing);
   
-  if (lineIndex >= -2 && lineIndex <= 10) {
-      addNote(duration, x, y, measureIndex);
-  }
+//   if (lineIndex >= -2 && lineIndex <= 10) {
+//       addNote(duration, x, y, measureIndex);
+//   }
   
-  // Clean up
-  staffLineHighlight.style.display = 'none';
-  staffSpaceHighlight.style.display = 'none';
-  const tooltip = document.querySelector('.position-tooltip');
-  if (tooltip) tooltip.style.display = 'none';
-}
+//   // Clean up
+//   staffLineHighlight.style.display = 'none';
+//   staffSpaceHighlight.style.display = 'none';
+//   const tooltip = document.querySelector('.position-tooltip');
+//   if (tooltip) tooltip.style.display = 'none';
+// }
 
 // Helper function to hide highlights and tooltip
+
 function hideHighlightsAndTooltip(tooltip) {
   if (tooltip) tooltip.style.display = 'none';
   staffLineHighlight.style.display = 'none';
@@ -823,6 +917,7 @@ function hideHighlightsAndTooltip(tooltip) {
 }
 
 // Event Listeners
+
 document.getElementById('clef-select').addEventListener('change', function() {
     const confirmation = confirm("Sure to change clef? All the notes will be clear and cannot be undo.");
     if(confirmation){
@@ -910,15 +1005,60 @@ document.addEventListener("keydown", (e) => {
   }
 });
 
-document.querySelectorAll(".draggable-note").forEach((note) => {
-  note.addEventListener("dragstart", (e) => {
-    e.dataTransfer.setData("text/plain", note.dataset.duration);
-  });
+document.querySelectorAll('.draggable-note').forEach(note => {
+    note.addEventListener('click', () => {
+
+        if(selectedNoteSymbol){
+        selectedNoteSymbol.classList.remove('selected-note'); 
+        }
+
+        // Set the clicked note as the selected note
+        selectedNoteSymbol = note;
+            
+        // Add the "selected-note" class to the currently clicked note
+        selectedNoteSymbol.classList.add('selected-note');
+        
+        // Store the selected note's duration
+        selectedNote = note.dataset.duration;
+       
+    });
 });
 
-document.querySelector(".staff-scroll-container").addEventListener("dragover", (e) => {
-    e.preventDefault();
+
+document.querySelector('.staff-scroll-container').addEventListener('click', e => {
+    if (!selectedNote) {
+        alert("Please select a note from the palette first.");
+        return;
+    }
+
+    const staffContainer = e.currentTarget;
+    const staffRect = staffContainer.getBoundingClientRect();
+    const scrollLeft = staffContainer.scrollLeft;
+    const scrollTop = staffContainer.scrollTop;
+
+    // Calculate x and y relative to the container
+    const x = e.clientX - staffRect.left + scrollLeft;
+    const y = e.clientY - staffRect.top + scrollTop;
+
+    const rowHeight = 210;
+    const currentRowIndex = Math.floor(y / rowHeight);
+    const measureIndex = getMeasureIndexFromPosition(x, scrollLeft, currentRowIndex);    
+
+    // Add the selected note to the staff
+    addNote(selectedNote, x, y, measureIndex);
+    
 });
+
+
+// document.querySelectorAll(".draggable-note").forEach((note) => {
+//   note.addEventListener("dragstart", (e) => {
+//     e.dataTransfer.setData("text/plain", note.dataset.duration);
+//   });
+// });
+
+// document.querySelector(".staff-scroll-container").addEventListener("dragover", (e) => {
+//     e.preventDefault();
+// });
 
 // Add scroll event listener to update highlight positions
 document.querySelector('.staff-scroll-container').addEventListener('scroll', function(e) {
@@ -932,6 +1072,7 @@ document.querySelector('.staff-scroll-container').addEventListener('scroll', fun
       this.dispatchEvent(lastDragEvent);
   }
 });
+
 
 document.querySelectorAll('.accidental-btn').forEach(btn => {
   btn.addEventListener('click', function() {

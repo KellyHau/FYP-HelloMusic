@@ -77,7 +77,7 @@ select {
     border: 1px solid #ddd;
     border-radius: 4px;
     background-color: #fff;
-    cursor: grab;
+    cursor: pointer; /* Make sure the cursor shows pointer on hover */
     text-align: center;
 }
 
@@ -139,7 +139,8 @@ button {
 }
 
 .selected-note {
-    fill: #ff4444;
+    background-color: #ccc; /* Grey background for selected note */
+    color: #fff; /* White text color for better contrast */
 }
 
 .staff-container {
@@ -246,4 +247,14 @@ button {
 .disabled-note {
     opacity: 0.5;
     cursor: not-allowed;
+}
+
+.preview-note {
+    position: absolute;
+    width: 10px;
+    height: 10px;
+    background-color: black;
+    border-radius: 50%;
+    pointer-events: none; /* Prevent interaction */
+    z-index: 9999; /* Ensure it's above other elements */
 }
