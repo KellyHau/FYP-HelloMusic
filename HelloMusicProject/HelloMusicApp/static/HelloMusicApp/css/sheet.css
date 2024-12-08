@@ -242,3 +242,8 @@ button {
     pointer-events: none;
     z-index: 1001;
 }
+
+.disabled-note {
+    opacity: 0.5;
+    cursor: not-allowed;
+}

@@ -68,6 +68,7 @@ class MusicSheet(models.Model):
     tempo = models.CharField(max_length=30, null=True, blank=True)
     key_signature = models.CharField(max_length=30, null=True, blank=True)
     time_signature = models.CharField(max_length=30, null=True, blank=True)
+    clef_type = models.CharField(max_length=30, default='treble') 
     folder =  models.ForeignKey(MusicSheetFolder, on_delete=models.CASCADE,related_name="music_sheets", null=True, blank=True)
     creationDate = models.DateTimeField(auto_now_add=True)
     updatedDate = models.DateTimeField(auto_now=True)
@@ -75,7 +76,6 @@ class MusicSheet(models.Model):
 
     def __str__(self):
         return self.title
-    
     
 class UserMusicSheet(models.Model):
     
@@ -94,7 +94,7 @@ class UserMusicSheet(models.Model):
 
     class Meta:
         unique_together = ('sheet', 'user')
-
+        
     def __str__(self):
         return f"{self.user.username} in {self.sheet.title} as {self.role}"
     
@@ -138,15 +138,16 @@ class Measure(models.Model):
     def __str__(self):
         return self.measure_number
 
-class Staff(models.Model):
+# class Staff(models.Model):
     
-    ID = models.AutoField(primary_key=True)
-    sheet = models.ForeignKey(MusicSheet, on_delete=models.CASCADE,related_name="staffs")
-    instrument = models.CharField(max_length=50)
-    clef_type = models.CharField(max_length=50)
+#     ID = models.AutoField(primary_key=True)
+#     sheet = models.ForeignKey(MusicSheet, on_delete=models.CASCADE,related_name="staffs")
+#     instrument = models.CharField(max_length=50)
+#     clef_type = models.CharField(max_length=50)
+#     position = models.IntegerField(default=0)
 
-    def __str__(self):
-        return self.instrument
+#     def __str__(self):
+#         return self.instrument
 
 class Chord(models.Model):
     

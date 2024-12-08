@@ -27,4 +27,7 @@ urlpatterns = [
     path('search/', views.search_sheet_folder, name='search'),
     path('sheet/', views.sheet, name='sheet'),
     path('empty_sheet/', views.create_music_sheet, name='create_music_sheet'),
+    path('sheet/<str:sheet_title>/', views.edit_sheet, name='edit_sheet'),
+    path('api/save_sheet/<int:sheet_id>/', views.save_sheet, name='save_sheet'),
+    path('api/load_sheet/<int:sheet_id>/', views.load_sheet, name='load_sheet'),
     ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

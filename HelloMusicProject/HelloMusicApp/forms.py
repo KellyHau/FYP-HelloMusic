@@ -8,6 +8,23 @@ class MusicSheetForm(forms.ModelForm):
         model = MusicSheet
         fields = ['title']
         
+    def __init__(self, *args, **kwargs):
+        self.user = kwargs.pop('user', None)
+        super().__init__(*args, **kwargs)
+        
+    def clean_title(self):
+        title = self.cleaned_data['title']
+        # Remove or replace invalid characters
+        title = title.replace(' ', '_')  # Replace spaces with underscores
+        
+        if self.user and MusicSheet.objects.filter(
+            users=self.user,
+            title=title
+        ).exists():
+            raise forms.ValidationError('You already have a sheet with this title.')
+            
+        return title
+        
 class MusicSheetFolderForm(forms.ModelForm):
     class Meta:
         model = MusicSheetFolder

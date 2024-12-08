@@ -1,3 +1,5 @@
+import json
+from django import template
 from django.shortcuts import render, redirect
 from django.conf import settings
 from django.shortcuts import get_object_or_404
@@ -18,9 +20,11 @@ from datetime import timedelta
 from django.contrib.auth.models import User
 from django.conf import settings
 from django.views.decorators.http import require_http_methods
-from django.db import transaction
+from django.db import IntegrityError, transaction
 from django.db.models import Case, When, Value, IntegerField
 from django.db.models import Q
+import os
+from django.template import loader, TemplateDoesNotExist
 
 
 def register(request):
@@ -202,17 +206,21 @@ def profile_view(request):
 @require_POST
 def create_sheet(request): #need to login before create
     
-    form = MusicSheetForm(request.POST)
+    form = MusicSheetForm(request.POST, user=request.user)
     
     if form.is_valid():
-      
-        music_sheet = form.save() 
-           
-        UserMusicSheet.objects.create(
-            sheet=music_sheet,
-            user=request.user,
-            role='Owner' 
-        )
+        try:
+            with transaction.atomic():
+                music_sheet = form.save() 
+                
+                UserMusicSheet.objects.create(
+                    sheet=music_sheet,
+                    user=request.user,
+                    role='owner'
+                )
+                return redirect('edit_sheet', sheet_title=music_sheet.title)
+        except IntegrityError:
+            messages.error(request, "You already have a sheet with this title.")
             
     return redirect('/')
 
@@ -564,5 +572,131 @@ def sheet(request):
 def create_music_sheet(request):
     return render(request, 'HelloMusicApp/empty_sheet.html')
 
+def edit_sheet(request, sheet_title):
+    sheet = get_object_or_404(MusicSheet, title=sheet_title)
+    user_permission = get_object_or_404(UserMusicSheet, sheet=sheet, user=request.user)
+    
+    if user_permission.role not in ['owner', 'editor']:
+        messages.error(request, "You don't have permission to edit this sheet")
+        return redirect('home')
+    
+    # Get the template directory path
+    template_dir = os.path.join(settings.BASE_DIR, 'HelloMusicApp', 'templates', 'HelloMusicApp')
+    
+    # Ensure the template directory exists
+    os.makedirs(template_dir, exist_ok=True)
+    
+    # Create template name
+    template_name = f'sheet_editor.html'  # Using a single template instead of multiple files
+    
+    context = {
+        'sheet': sheet,
+        'sheet_id': sheet.ID,
+        'sheet_title': sheet_title,
+    }
+    
+    return render(request, f'HelloMusicApp/{template_name}', context)
 
+@require_http_methods(["POST"])
+def save_sheet(request, sheet_id):
+    try:
+        sheet = get_object_or_404(MusicSheet, ID=sheet_id)
+        user_permission = get_object_or_404(UserMusicSheet, sheet=sheet, user=request.user)
+        
+        if user_permission.role not in ['owner', 'editor']:
+            return JsonResponse({'status': 'error', 'message': 'Permission denied'})
+        
+        data = json.loads(request.body)
+        
+        # Update sheet properties including clef
+        sheet.time_signature = data.get('timeSignature')
+        sheet.key_signature = data.get('keySignature')
+        sheet.clef_type = data.get('clefType')  # Save the clef type
+        sheet.save()
+        
+        # Clear existing measures and notes
+        sheet.measures.all().delete()
+        
+        # Save new measures and notes
+        for measure_data in data.get('measures', []):
+            measure = Measure.objects.create(
+                sheet=sheet,
+                measure_number=measure_data.get('measure_number'),
+                time_signature=measure_data.get('time_signature')
+            )
+            
+            # Don't create Staff records anymore
+            
+            # Save notes
+            for note_data in measure_data.get('notes', []):
+                Note.objects.create(
+                    measure=measure,
+                    pitch=note_data.get('pitch'),
+                    duration=note_data.get('duration'),
+                    tie=note_data.get('tie', ''),
+                    accidental=note_data.get('accidental', ''),
+                    duration_value=note_data.get('duration_value', 1.0),
+                    dynamics=note_data.get('dynamics', ''),
+                    articulation=note_data.get('articulation', '')
+                )
+            
+            # Save rests
+            for rest_data in measure_data.get('rests', []):
+                Rest.objects.create(
+                    measure=measure,
+                    duration=rest_data.get('duration')
+                )
+        
+        return JsonResponse({'status': 'success'})
+        
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': str(e)})
 
+def load_sheet(request, sheet_id):
+    try:
+        sheet = get_object_or_404(MusicSheet, ID=sheet_id)
+        user_permission = get_object_or_404(UserMusicSheet, sheet=sheet, user=request.user)
+        
+        data = {
+            'timeSignature': sheet.time_signature,
+            'keySignature': sheet.key_signature,
+            'clefType': sheet.clef_type,
+            'measures': []
+        }
+        
+        # Get all measures for this sheet, ordered by measure number
+        measures = Measure.objects.filter(sheet=sheet).order_by('measure_number')
+        
+        for measure in measures:
+            measure_data = {
+                'timeSignature': measure.time_signature,
+                'notes': [],
+                'rests': []
+            }
+            
+            # Get notes for this measure
+            notes = Note.objects.filter(measure=measure)
+            for note in notes:
+                measure_data['notes'].append({
+                    'pitch': note.pitch,
+                    'duration': note.duration,
+                    'tie': note.tie,
+                    'accidental': note.accidental,
+                    'duration_value': float(note.duration_value),
+                    'dynamics': note.dynamics,
+                    'articulation': note.articulation
+                })
+            
+            # Get rests for this measure
+            rests = Rest.objects.filter(measure=measure)
+            for rest in rests:
+                measure_data['rests'].append({
+                    'duration': rest.duration
+                })
+                
+            data['measures'].append(measure_data)
+            
+        return JsonResponse(data)
+        
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': str(e)})
