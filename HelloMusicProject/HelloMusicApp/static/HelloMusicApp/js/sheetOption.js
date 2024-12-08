@@ -98,7 +98,7 @@ function saveTitle() {
     const newTitle = document.getElementById('newTitle').value;
 
     $.ajax({
-        url: `/editSheet/${currentSheetId}/`,
+        url: `/renameSheet/${currentSheetId}/`,
         type: 'POST',
         data: {
             'title': newTitle,

@@ -204,25 +204,23 @@ def profile_view(request):
 
 # Music sheet management
 @require_POST
-def create_sheet(request): #need to login before create
+def create_sheet(request):
     
     form = MusicSheetForm(request.POST, user=request.user)
     
+ 
     if form.is_valid():
-        try:
-            with transaction.atomic():
-                music_sheet = form.save() 
-                
-                UserMusicSheet.objects.create(
-                    sheet=music_sheet,
-                    user=request.user,
-                    role='owner'
-                )
-                return redirect('edit_sheet', sheet_title=music_sheet.title)
-        except IntegrityError:
-            messages.error(request, "You already have a sheet with this title.")
-            
-    return redirect('/')
+          
+        music_sheet = form.save() 
+                    
+        UserMusicSheet.objects.create(
+            sheet=music_sheet,
+            user=request.user,
+            role='owner'
+        )
+        
+        return redirect('edit_sheet', sheet_title=music_sheet.title)
+ 
 
 def user_music_sheets_list(request): 
  return MusicSheet.objects.filter(users=request.user)
@@ -246,7 +244,7 @@ def delete_sheet(request, sheet_id):
         return JsonResponse({'status': False, 'mes': 'Music sheet not found'})
     
 @require_POST
-def editSheet(request, sheet_id):
+def renameSheet(request, sheet_id):
     
     new_title = request.POST.get('title', '').strip()    
     
@@ -568,15 +566,11 @@ def sheet(request):
     context = {}
     return render(request,"HelloMusicApp/sheet.html",context)
 
-    
-def create_music_sheet(request):
-    return render(request, 'HelloMusicApp/empty_sheet.html')
-
 def edit_sheet(request, sheet_title):
     sheet = get_object_or_404(MusicSheet, title=sheet_title)
-    user_permission = get_object_or_404(UserMusicSheet, sheet=sheet, user=request.user)
+    user_permission = UserMusicSheet.objects.filter(sheet=sheet, user=request.user,role__in=['owner', 'editor']).first()
     
-    if user_permission.role not in ['owner', 'editor']:
+    if not user_permission.role :
         messages.error(request, "You don't have permission to edit this sheet")
         return redirect('home')
     

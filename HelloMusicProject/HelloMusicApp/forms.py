@@ -14,15 +14,14 @@ class MusicSheetForm(forms.ModelForm):
         
     def clean_title(self):
         title = self.cleaned_data['title']
-        # Remove or replace invalid characters
-        title = title.replace(' ', '_')  # Replace spaces with underscores
-        
-        if self.user and MusicSheet.objects.filter(
-            users=self.user,
-            title=title
-        ).exists():
-            raise forms.ValidationError('You already have a sheet with this title.')
-            
+        original_title = title
+        counter = 1
+
+        # Check for duplicates and append a number if necessary
+        while MusicSheet.objects.filter(users=self.user, title=title).exists():
+            title = f"{original_title} ({counter})"
+            counter += 1
+
         return title
         
 class MusicSheetFolderForm(forms.ModelForm):

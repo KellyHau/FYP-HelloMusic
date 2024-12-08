@@ -12,7 +12,6 @@
 
     <title>{% block title %}{% endblock %}</title>
     <link rel="icon" href="{% static 'HelloMusicApp/images/favicon.ico' %}" type="image/x-icon">
-    <link href="{% static 'HelloMusicApp/css/sheet.css' %}" rel="stylesheet" />
     <!-- Bootstrap 5 CSS -->
     <link href="{% static 'HelloMusicApp/css/bootstrap.min.css' %}" rel="stylesheet">
     <link href="{% static 'HelloMusicApp/css/dashboard.css' %}" rel="stylesheet">
@@ -110,8 +109,7 @@
             </div>
         </div>
     </div>
-
-
+    
     <!-- Add Sheet Modal -->
     <div class="modal fade" id="addsheetModal" tabindex="-1" aria-labelledby="addsheetModal" aria-hidden="true">
         <div class="modal-dialog">
@@ -256,7 +254,7 @@
                         resultsHTML += `<h5 class="px-2">Music Sheets</h5><ul class="list-group">`;
                         data.sheets.forEach(sheet => {
                             resultsHTML +=
-                                `<li class="list-group-item"><a href="/sheet/${sheet.ID}/">${sheet.title}</a></li>`;
+                                `<li class="list-group-item"><a href="/sheet/${sheet.title}">${sheet.title}</a></li>`;
                         });
                         resultsHTML += `</ul>`;
                     }
