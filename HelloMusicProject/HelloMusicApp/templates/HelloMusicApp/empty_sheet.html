@@ -561,7 +561,7 @@
       function addNote(duration, x, y, measureIndex) {
         const rowHeight = 210;
         const rowIndex = Math.floor(y / rowHeight);
-        const staffTop = 100 + (rowHeight * rowIndex);
+        const staffTop = 80 + (rowHeight * rowIndex);
         const staffLineSpacing = 5;
         const relativeY = y - staffTop;
         const lineIndex = Math.round(relativeY / staffLineSpacing);
@@ -672,18 +672,22 @@
 
       // Create highlight elements
       function createHighlightElements() {
+        // Remove existing highlights if they exist
+        const existingHighlights = document.querySelectorAll('.staff-line-highlight, .staff-space-highlight');
+        existingHighlights.forEach(el => el.remove());
+    
         // Create staff line highlight
         staffLineHighlight = document.createElement('div');
         staffLineHighlight.className = 'staff-line-highlight';
         staffLineHighlight.style.display = 'none';
         document.querySelector('.staff-scroll-container').appendChild(staffLineHighlight);
-
+    
         // Create staff space highlight
         staffSpaceHighlight = document.createElement('div');
         staffSpaceHighlight.className = 'staff-space-highlight';
         staffSpaceHighlight.style.display = 'none';
         document.querySelector('.staff-scroll-container').appendChild(staffSpaceHighlight);
-      }
+    }
 
       function handleDragStart(e) {
         draggedDuration = e.target.dataset.duration;
@@ -714,17 +718,18 @@
         const scrollLeft = staffContainer.scrollLeft;
         const scrollTop = staffContainer.scrollTop;
         
-        const x = e.clientX - staffRect.left;
-        const y = e.clientY - staffRect.top;
+        // Calculate x and y relative to the container's viewport position
+        const x = e.clientX - staffRect.left + scrollLeft;
+        const y = e.clientY - staffRect.top + scrollTop;
         
         const rowHeight = 210;
-        const currentRowIndex = Math.floor((y + scrollTop) / rowHeight);
+        const currentRowIndex = Math.floor(y / rowHeight);
         const measureIndex = getMeasureIndexFromPosition(x, scrollLeft, currentRowIndex);
         
-        // Calculate staff position with improved precision
-        const staffTop = 100 + (rowHeight * currentRowIndex);
+        // Calculate staff position
+        const staffTop = 80 + (rowHeight * currentRowIndex);
         const staffLineSpacing = 5;
-        const relativeY = y - staffTop + scrollTop;
+        const relativeY = y - staffTop;
         const lineIndex = Math.round(relativeY / staffLineSpacing);
         
         const clef = document.getElementById('clef-select').value;
@@ -732,10 +737,10 @@
         if (lineIndex >= -2 && lineIndex <= 10) {
             const positionInfo = getNoteNameFromPosition(lineIndex, clef);
             if (positionInfo) {
-                // Calculate precise snap position
-                const snapPosition = staffTop + (lineIndex * staffLineSpacing) - scrollTop;
+                // Calculate position for highlighting
+                const snapPosition = staffTop + (lineIndex * staffLineSpacing);
                 
-                // Update visual feedback
+                // Update visual feedback with absolute positioning
                 if (positionInfo.type === 'line') {
                     staffLineHighlight.style.display = 'block';
                     staffLineHighlight.style.top = `${snapPosition}px`;
@@ -746,7 +751,7 @@
                     staffLineHighlight.style.display = 'none';
                 }
                 
-                // Update tooltip with more precise information
+                // Update tooltip
                 let tooltip = document.querySelector('.position-tooltip');
                 if (!tooltip) {
                     tooltip = document.createElement('div');
@@ -762,7 +767,7 @@
                 tooltip.style.display = 'block';
             }
         }
-      }
+    }
       
       function handleDragLeave(e) {
         if (!e.currentTarget.contains(e.relatedTarget)) {
@@ -785,20 +790,21 @@
         const scrollLeft = staffContainer.scrollLeft;
         const scrollTop = staffContainer.scrollTop;
         
-        const x = e.clientX - staffRect.left;
-        const y = e.clientY - staffRect.top;
+        // Calculate x and y relative to the container's viewport position
+        const x = e.clientX - staffRect.left + scrollLeft;
+        const y = e.clientY - staffRect.top + scrollTop;
         
         const rowHeight = 210;
-        const currentRowIndex = Math.floor((y + scrollTop) / rowHeight);
+        const currentRowIndex = Math.floor(y / rowHeight);
         const measureIndex = getMeasureIndexFromPosition(x, scrollLeft, currentRowIndex);
         
         // Calculate staff position
-        const staffTop = 100 + (rowHeight * currentRowIndex);
+        const staffTop = 80 + (rowHeight * currentRowIndex);
         const staffLineSpacing = 5;
-        const relativeY = y - staffTop + scrollTop;
+        const relativeY = y - staffTop;
         const lineIndex = Math.round(relativeY / staffLineSpacing);
         
-        if (lineIndex >= -2 && lineIndex <= 11) {
+        if (lineIndex >= -2 && lineIndex <= 10) {
             addNote(duration, x, y, measureIndex);
         }
         
@@ -807,7 +813,7 @@
         staffSpaceHighlight.style.display = 'none';
         const tooltip = document.querySelector('.position-tooltip');
         if (tooltip) tooltip.style.display = 'none';
-      }
+    }
 
       // Helper function to hide highlights and tooltip
       function hideHighlightsAndTooltip(tooltip) {
@@ -895,6 +901,19 @@
 
       document.querySelector(".staff-scroll-container").addEventListener("dragover", (e) => {
           e.preventDefault();
+      });
+
+      // Add scroll event listener to update highlight positions
+      document.querySelector('.staff-scroll-container').addEventListener('scroll', function(e) {
+        if (staffLineHighlight.style.display === 'block' || staffSpaceHighlight.style.display === 'block') {
+            // Trigger a dragover event to update positions
+            const lastDragEvent = new MouseEvent('dragover', {
+                clientX: parseInt(staffLineHighlight.style.left) || 0,
+                clientY: parseInt(staffLineHighlight.style.top) || 0,
+                bubbles: true
+            });
+            this.dispatchEvent(lastDragEvent);
+        }
       });
 
       document.querySelectorAll('.accidental-btn').forEach(btn => {

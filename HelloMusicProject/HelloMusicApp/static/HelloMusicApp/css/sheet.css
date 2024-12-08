@@ -91,7 +91,7 @@ select {
 
 .staff-scroll-container {
     flex: 1;
-    height: calc(100vh - 40px);
+    height: calc(80vh - 40px);
     overflow: auto;
     background: white;
     border: 1px solid #ccc;
@@ -108,7 +108,7 @@ select {
 #staff-container {
     display: block;
     width: 100%;
-    overflow-x: auto;
+    overflow: auto;
     /*min-width: fit-content;*/
     background: white;
     /*margin: 0 auto;*/
