@@ -12,6 +12,9 @@ let audioInitialized = false;
 let draggedDuration = null;
 let staffLineHighlight = null;
 let staffSpaceHighlight = null;
+let isLyricsMode = false;
+let selectedLyrics = null;
+let lyrics = [];
 
 
 // Duration mappings
@@ -47,80 +50,91 @@ const history = {
   redoStack: [],
   
   pushState() {
-      // Convert measures to a serializable format
-      const serializableMeasures = measures.map(measure => 
-          measure.map(note => ({
-              keys: note.keys,
-              duration: note.duration,
-              accidental: note.modifiers.find(m => m instanceof Vex.Flow.Accidental)?.type,
-              articulation: note.modifiers.find(m => m instanceof Vex.Flow.Articulation)?.type,
-              tied: note.tied,
-              tieStart: note.tieStart
-          }))
-      );
-      
-      this.undoStack.push(JSON.stringify(serializableMeasures));
-      this.redoStack = [];
-      if (this.undoStack.length > 50) this.undoStack.shift();
+    // Store both measures and current clef type
+    const state = {
+        clef: document.getElementById('clef-select').value,
+        measures: measures.map(measure => 
+            measure.map(note => ({
+                keys: note.keys,
+                duration: note.duration,
+                accidental: note.modifiers.find(m => m instanceof Vex.Flow.Accidental)?.type,
+                articulation: note.modifiers.find(m => m instanceof Vex.Flow.Articulation)?.type,
+                tied: note.tied,
+                tieStart: note.tieStart
+            }))
+        )
+    };
+    
+    this.undoStack.push(JSON.stringify(state));
+    this.redoStack = [];
+    if (this.undoStack.length > 50) this.undoStack.shift();
   },
   
   undo() {
       if (this.undoStack.length > 0) {
-          const currentState = this.serializeMeasures(measures);
+          const currentState = this.serializeMeasures();
           this.redoStack.push(currentState);
           const previousState = JSON.parse(this.undoStack.pop());
-          measures = this.deserializeMeasures(previousState);
-          initializeStaves();
+          this.restoreState(previousState);
       }
   },
   
   redo() {
       if (this.redoStack.length > 0) {
-          const currentState = this.serializeMeasures(measures);
+          const currentState = this.serializeMeasures();
           this.undoStack.push(currentState);
           const nextState = JSON.parse(this.redoStack.pop());
-          measures = this.deserializeMeasures(nextState);
-          initializeStaves();
+          this.restoreState(nextState);
       }
   },
   
-  serializeMeasures(measures) {
-      const serializableMeasures = measures.map(measure => 
-          measure.map(note => ({
-              keys: note.keys,
-              duration: note.duration,
-              accidental: note.modifiers.find(m => m instanceof Vex.Flow.Accidental)?.type,
-              articulation: note.modifiers.find(m => m instanceof Vex.Flow.Articulation)?.type,
-              tied: note.tied,
-              tieStart: note.tieStart
-          }))
-      );
-      return JSON.stringify(serializableMeasures);
+  serializeMeasures() {
+    return JSON.stringify({
+        clef: document.getElementById('clef-select').value,
+        measures: measures.map(measure => 
+            measure.map(note => ({
+                keys: note.keys,
+                duration: note.duration,
+                accidental: note.modifiers.find(m => m instanceof Vex.Flow.Accidental)?.type,
+                articulation: note.modifiers.find(m => m instanceof Vex.Flow.Articulation)?.type,
+                tied: note.tied,
+                tieStart: note.tieStart
+            }))
+        )
+    });
   },
   
-  deserializeMeasures(serializedMeasures) {
-      return serializedMeasures.map(measure =>
-          measure.map(noteData => {
-              const note = new Vex.Flow.StaveNote({
-                  keys: noteData.keys,
-                  duration: noteData.duration
-              });
-              
-              if (noteData.accidental) {
-                  note.addAccidental(0, new Vex.Flow.Accidental(noteData.accidental));
-              }
-              
-              if (noteData.articulation) {
-                  note.addArticulation(0, new Vex.Flow.Articulation(noteData.articulation));
-              }
-              
-              note.tied = noteData.tied;
-              note.tieStart = noteData.tieStart;
-              
-              return note;
-          })
-      );
-  }
+  restoreState(state) {
+    // Restore clef first
+    document.getElementById('clef-select').value = state.clef;
+    
+    // Then restore measures with the correct clef
+    measures = state.measures.map(measure =>
+        measure.map(noteData => {
+            const note = new Vex.Flow.StaveNote({
+                keys: noteData.keys,
+                duration: noteData.duration,
+                auto_stem: true,
+                clef: state.clef  // Use the stored clef type
+            });
+            
+            if (noteData.accidental) {
+                note.addAccidental(0, new Vex.Flow.Accidental(noteData.accidental));
+            }
+            
+            if (noteData.articulation) {
+                note.addArticulation(0, new Vex.Flow.Articulation(noteData.articulation));
+            }
+            
+            note.tied = noteData.tied;
+            note.tieStart = noteData.tieStart;
+            
+            return note;
+        })
+    );
+    
+    initializeStaves();
+}
 };
 
 // Constants for layout
@@ -413,6 +427,38 @@ function initializePreviewSystem() {
            tooltip.style.display = 'none';
        }
    });
+
+   staffContainer.addEventListener('dragover', e => {
+        if (isLyricsMode && selectedLyrics) {
+            e.preventDefault();
+        }
+    });
+
+    staffContainer.addEventListener('drop', e => {
+        if (isLyricsMode && selectedLyrics) {
+            e.preventDefault();
+            
+            const staffRect = staffContainer.getBoundingClientRect();
+            const scrollLeft = staffContainer.scrollLeft;
+            const scrollTop = staffContainer.scrollTop;
+
+            const x = e.clientX - staffRect.left + scrollLeft;
+            const y = e.clientY - staffRect.top + scrollTop;
+
+            const rowHeight = 210;
+            const currentRowIndex = Math.floor(y / rowHeight);
+            const measureIndex = getMeasureIndexFromPosition(x, scrollLeft, currentRowIndex);
+
+            updateLyrics(selectedLyrics.ID, {
+                ...selectedLyrics,
+                x_position: x,
+                y_position: y,
+                measure_number: measureIndex + 1
+            });
+
+            selectedLyrics = null;
+        }
+    });
    
 //   // Remove any existing listeners
 //   staffContainer.removeEventListener('dragover', handleDragOver);
@@ -909,11 +955,214 @@ function updateSelectableNotes() {
 // }
 
 // Helper function to hide highlights and tooltip
-
 function hideHighlightsAndTooltip(tooltip) {
   if (tooltip) tooltip.style.display = 'none';
   staffLineHighlight.style.display = 'none';
   staffSpaceHighlight.style.display = 'none';
+}
+
+function toggleLyricsMode() {
+    isLyricsMode = !isLyricsMode;
+    const lyricsBtn = document.getElementById('lyrics-mode-btn');
+    
+    // Add some user feedback
+    if (isLyricsMode) {
+        lyricsBtn.classList.add('active');
+        alert('Lyrics mode enabled. Click anywhere on the staff to add lyrics.');
+    }else{
+        lyricsBtn.classList.remove('active');
+    }
+
+    // Add visual feedback
+    const staffContainer = document.querySelector('.staff-scroll-container');
+    staffContainer.style.cursor = isLyricsMode ? 'text' : 'default';
+}
+
+function addLyrics(x, y, measureIndex) {
+    const text = prompt('Enter lyrics text:');
+    if (!text) return;
+
+    const lyric = {
+        text: text,
+        x_position: x,
+        y_position: y,
+        measure_number: measureIndex + 1
+    };
+
+    // Save to server
+    saveLyrics(lyric);
+}
+
+function saveLyrics(lyric) {
+    const sheetId = document.getElementById('sheet-editor').dataset.sheetId;
+    
+    fetch(`/api/save_lyrics/${sheetId}/`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: JSON.stringify(lyric)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'success') {
+            lyrics.push({...lyric, ID: data.lyrics_id});
+            drawLyrics();
+        }
+    })
+    .catch(error => console.error('Error saving lyrics:', error));
+}
+
+function drawLyrics() {
+    // Remove existing lyrics
+    const existingLyrics = document.querySelectorAll('.lyrics-text');
+    existingLyrics.forEach(el => el.remove());
+
+    // Draw each lyric
+    lyrics.forEach(lyric => {
+        const lyricsElement = document.createElement('div');
+        lyricsElement.className = 'lyrics-text';
+        lyricsElement.textContent = lyric.text;
+        lyricsElement.dataset.id = lyric.ID;
+        
+        lyricsElement.style.left = `${lyric.x_position}px`;
+        lyricsElement.style.top = `${lyric.y_position}px`;
+        
+        // Add event listeners for editing
+        lyricsElement.addEventListener('dblclick', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+
+
+            // Also prevent single click from triggering
+            e.target.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+            }, { once: true });  // Remove after first use
+
+            if (!isLyricsMode) {
+                alert('Please enable lyrics mode to edit lyrics');
+                return;
+            }
+            
+            // Create edit dialog
+            const dialogHTML = `
+                <div class="lyrics-dialog">
+                    <input type="text" class="lyrics-edit-input" value="${lyric.text}">
+                    <div class="lyrics-buttons">
+                        <button class="lyrics-btn update">Update</button>
+                        <button class="lyrics-btn delete">Delete</button>
+                        <button class="lyrics-btn cancel">Cancel</button>
+                    </div>
+                </div>
+            `;
+
+            // Remove any existing dialogs
+            const existingDialogs = document.querySelectorAll('.lyrics-dialog');
+            existingDialogs.forEach(dialog => dialog.remove());
+
+            // Add new dialog
+            lyricsElement.insertAdjacentHTML('afterend', dialogHTML);
+            
+            const dialog = lyricsElement.nextElementSibling;
+            const input = dialog.querySelector('.lyrics-edit-input');
+            input.focus();
+            input.select();
+
+            // Position the dialog
+            const rect = lyricsElement.getBoundingClientRect();
+            dialog.style.position = 'absolute';
+            dialog.style.left = `${lyric.x_position}px`;
+            dialog.style.top = `${parseFloat(lyric.y_position) + 25}px`;
+            
+            // Add button event listeners
+            dialog.querySelector('.update').addEventListener('click', () => {
+                const newText = input.value.trim();
+                if (newText && newText !== lyric.text) {
+                    updateLyrics(lyric.ID, {
+                        ...lyric,
+                        text: newText
+                    });
+                }
+                dialog.remove();
+            });
+            
+            dialog.querySelector('.delete').addEventListener('click', () => {
+                if (confirm('Are you sure you want to delete this lyrics?')) {
+                    deleteLyrics(lyric.ID);
+                }
+                dialog.remove();
+            });
+            
+            dialog.querySelector('.cancel').addEventListener('click', () => {
+                dialog.remove();
+            });
+            
+            // Handle click outside
+            document.addEventListener('click', function closeDialog(e) {
+                if (!dialog.contains(e.target) && !lyricsElement.contains(e.target)) {
+                    dialog.remove();
+                    document.removeEventListener('click', closeDialog);
+                }
+            });
+        });
+
+        // Make lyrics draggable
+        lyricsElement.draggable = true;
+        lyricsElement.addEventListener('dragstart', (e) => {
+            if (!isLyricsMode) {
+                e.preventDefault();
+                return;
+            }
+            selectedLyrics = lyric;
+        });
+
+        document.querySelector('.staff-scroll-container').appendChild(lyricsElement);
+    });
+}
+
+function updateLyrics(lyricsId, updatedLyric) {
+    const sheetId = document.getElementById('sheet-editor').dataset.sheetId;
+    
+    fetch(`/api/update_lyrics/${sheetId}/${lyricsId}/`, {
+        method: 'PUT',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: JSON.stringify(updatedLyric)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'success') {
+            const index = lyrics.findIndex(l => l.ID === lyricsId);
+            if (index !== -1) {
+                lyrics[index] = updatedLyric;
+                drawLyrics();
+            }
+        }
+    })
+    .catch(error => console.error('Error updating lyrics:', error));
+}
+
+function deleteLyrics(lyricsId) {
+    const sheetId = document.getElementById('sheet-editor').dataset.sheetId;
+    
+    fetch(`/api/delete_lyrics/${sheetId}/${lyricsId}/`, {
+        method: 'DELETE',
+        headers: {
+            'X-CSRFToken': getCookie('csrftoken')
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'success') {
+            lyrics = lyrics.filter(l => l.ID !== lyricsId);
+            drawLyrics();
+        }
+    })
+    .catch(error => console.error('Error deleting lyrics:', error));
 }
 
 // Event Listeners
@@ -1026,10 +1275,12 @@ document.querySelectorAll('.draggable-note').forEach(note => {
 
 
 document.querySelector('.staff-scroll-container').addEventListener('click', e => {
-    if (!selectedNote) {
-        alert("Please select a note from the palette first.");
-        return;
+    // Check if click was on or inside a lyrics element
+    if (e.target.closest('.lyrics-text') || e.target.closest('.lyrics-dialog')) {
+        return; // Ignore clicks on lyrics or their edit dialogs
     }
+
+    console.log('Staff clicked', { isLyricsMode, selectedNote });
 
     const staffContainer = e.currentTarget;
     const staffRect = staffContainer.getBoundingClientRect();
@@ -1044,9 +1295,19 @@ document.querySelector('.staff-scroll-container').addEventListener('click', e =>
     const currentRowIndex = Math.floor(y / rowHeight);
     const measureIndex = getMeasureIndexFromPosition(x, scrollLeft, currentRowIndex);    
 
-    // Add the selected note to the staff
-    addNote(selectedNote, x, y, measureIndex);
-    
+    if (isLyricsMode) {
+        console.log('Handling lyrics addition');
+        // Handle lyrics addition
+        addLyrics(x, y, measureIndex);
+    } else if (selectedNote) {
+        console.log('Handling note addition');
+        // Existing note addition logic
+        addNote(selectedNote, x, y, measureIndex);
+    } else {
+        console.log('No mode selected');
+        // Optional: Show message to user
+        alert("Please select a note from the palette first or enable lyrics mode.");
+    }
 });
 
 
@@ -1094,6 +1355,20 @@ document.querySelectorAll('.articulation-btn').forEach(btn => {
     });
 });
 
+// Add lyrics mode button click handler
+document.getElementById('lyrics-mode-btn').addEventListener('click', () => {
+    toggleLyricsMode();
+    
+    // Disable note selection when in lyrics mode
+    if (isLyricsMode) {
+        selectedNote = null;
+        if (selectedNoteSymbol) {
+            selectedNoteSymbol.classList.remove('selected-note');
+            selectedNoteSymbol = null;
+        }
+    }
+});
+
 document.getElementById('key-signature').addEventListener('change', function() {
   initializeStaves();
 }, triggerAutoSave);
@@ -1104,35 +1379,39 @@ document.addEventListener('DOMContentLoaded', function() {
   
   // First initialize empty sheet
   measures = [[]];
+
+  // Initialize lyrics array
+  lyrics = [];
   
-  
-  // Then load existing data
-  fetch(`/api/load_sheet/${sheetId}/`)
-      .then(response => response.json())
-      .then(data => {
-        // Set clef type 
-        if (data.clefType) {
-            document.getElementById('clef-select').value = data.clefType;
+  // Load both sheet data and lyrics data
+    Promise.all([
+        fetch(`/api/load_sheet/${sheetId}/`).then(response => response.json()),
+        fetch(`/api/load_lyrics/${sheetId}/`).then(response => response.json())
+    ])
+      .then(([sheetData, lyricsData]) => {
+        // Handle sheet data
+        if (sheetData.clefType) {
+            document.getElementById('clef-select').value = sheetData.clefType;
         }
 
         initializeStaves();
         initializePreviewSystem();
 
-          if (data.measures && data.measures.length > 0) {
+          if (sheetData.measures && sheetData.measures.length > 0) {
               // Set time signature
-              if (data.timeSignature) {
-                  document.getElementById('time-select').value = data.timeSignature;
+              if (sheetData.timeSignature) {
+                  document.getElementById('time-select').value = sheetData.timeSignature;
               }
               updateSelectableNotes();
               
               // Set key signature
-              if (data.keySignature) {
-                  document.getElementById('key-signature').value = data.keySignature;
+              if (sheetData.keySignature) {
+                  document.getElementById('key-signature').value = sheetData.keySignature;
               }
               
               // Load measures
               measures = [];
-              data.measures.forEach(measureData => {
+              sheetData.measures.forEach(measureData => {
                   const measure = [];
                   
                   // Add notes
@@ -1141,7 +1420,7 @@ document.addEventListener('DOMContentLoaded', function() {
                           keys: [noteData.pitch],
                           duration: noteData.duration,
                           auto_stem: true,
-                          clef: data.clefType
+                          clef: sheetData.clefType
                       });
                       
                       if (noteData.accidental) {
@@ -1164,7 +1443,7 @@ document.addEventListener('DOMContentLoaded', function() {
                       const rest = new Vex.Flow.StaveNote({
                           keys: ["b/4"],
                           duration: restData.duration + "r",
-                          clef: data.clefType
+                          clef: sheetData.clefType
                       });
                       measure.push(rest);
                   });
@@ -1175,6 +1454,12 @@ document.addEventListener('DOMContentLoaded', function() {
               // Redraw the staves with loaded data
               initializeStaves();
           }
+
+          // Handle lyrics data
+            if (lyricsData.status === 'success') {
+                lyrics = lyricsData.lyrics;
+                drawLyrics();
+            }
       })
       .catch(error => {
           console.error('Error loading sheet:', error);

@@ -85,6 +85,11 @@ select {
     cursor: grabbing;
 }
 
+.draggable-note.active {
+    background-color: #007bff !important;
+    color: white !important;
+}
+
 .playback-controls {
     margin-top: 10px;
 }
@@ -257,4 +262,74 @@ button {
     border-radius: 50%;
     pointer-events: none; /* Prevent interaction */
     z-index: 9999; /* Ensure it's above other elements */
+}
+
+.lyrics-dialog {
+    background: white;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    z-index: 1000;
+    min-width: 200px;
+}
+
+.lyrics-edit-input {
+    padding: 5px;
+    margin-bottom: 10px;
+    border: 1px solid #ccc;
+    border-radius: 3px;
+    width: 100%;
+}
+
+.lyrics-buttons {
+    display: flex;
+    gap: 5px;
+    justify-content: flex-end;
+}
+
+.lyrics-btn {
+    padding: 5px 10px;
+    border: none;
+    border-radius: 3px;
+    cursor: pointer;
+}
+
+.lyrics-btn.update {
+    background-color: #28a745;
+    color: white;
+}
+
+.lyrics-btn.delete {
+    background-color: #dc3545;
+    color: white;
+}
+
+.lyrics-btn.cancel {
+    background-color: #6c757d;
+    color: white;
+}
+
+/* .lyrics-btn:hover {
+    opacity: 0.9;
+} */
+
+.lyrics-text {
+    position: absolute;
+    font-family: Arial, sans-serif;
+    font-size: 14px;
+    cursor: move;
+    /* background-color: rgba(255, 255, 255, 0.8); */
+    padding: 2px 4px;
+    border-radius: 3px;
+    user-select: none;
+}
+
+/* .lyrics-text:hover {
+    background-color: rgba(200, 200, 200, 0.2);
+} */
+
+#lyrics-mode-btn.active {
+    background-color: #007bff !important;
+    color: white !important;
 }

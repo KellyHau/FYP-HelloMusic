@@ -219,7 +219,7 @@ def create_sheet(request):
             role='owner'
         )
         
-        return redirect('edit_sheet', sheet_title=music_sheet.title)
+        return redirect('/')
  
 
 def user_music_sheets_list(request): 
@@ -694,3 +694,74 @@ def load_sheet(request, sheet_id):
         
     except Exception as e:
         return JsonResponse({'status': 'error', 'message': str(e)})
+    
+@require_http_methods(["POST"])
+def save_lyrics(request, sheet_id):
+    try:
+        data = json.loads(request.body)
+        sheet = get_object_or_404(MusicSheet, ID=sheet_id)
+        
+        lyrics = Lyrics.objects.create(
+            music_sheet=sheet,  # Changed from 'sheet' to 'music_sheet'
+            text=data['text'],
+            x_position=data['x_position'],
+            y_position=data['y_position'],
+            measure_number=data['measure_number']
+        )
+        
+        return JsonResponse({
+            'status': 'success',
+            'lyrics_id': lyrics.ID
+        })
+    except Exception as e:
+        return JsonResponse({
+            'status': 'error',
+            'message': str(e)
+        }, status=400)
+
+@require_http_methods(["GET"])
+def load_lyrics(request, sheet_id):
+    sheet = get_object_or_404(MusicSheet, ID=sheet_id)
+    lyrics = Lyrics.objects.filter(music_sheet=sheet).values(  # Changed from 'sheet' to 'music_sheet'
+        'ID', 'text', 'x_position', 'y_position', 'measure_number'
+    )
+    
+    return JsonResponse({
+        'status': 'success',
+        'lyrics': list(lyrics)
+    })
+
+@require_http_methods(["PUT"])
+def update_lyrics(request, sheet_id, lyrics_id):
+    try:
+        data = json.loads(request.body)
+        lyrics = get_object_or_404(Lyrics, ID=lyrics_id, music_sheet_id=sheet_id)  # Changed from 'sheet_id' to 'music_sheet_id'
+        
+        lyrics.text = data['text']
+        lyrics.x_position = data['x_position']
+        lyrics.y_position = data['y_position']
+        lyrics.measure_number = data['measure_number']
+        lyrics.save()
+        
+        return JsonResponse({'status': 'success'})
+    except Exception as e:
+        return JsonResponse({
+            'status': 'error',
+            'message': str(e)
+        }, status=400)
+
+@require_http_methods(["DELETE"])
+def delete_lyrics(request, sheet_id, lyrics_id):
+    try:
+        lyrics = get_object_or_404(Lyrics, ID=lyrics_id, music_sheet_id=sheet_id)
+        lyrics.delete()
+        
+        return JsonResponse({
+            'status': 'success',
+            'message': 'Lyrics deleted successfully'
+        })
+    except Exception as e:
+        return JsonResponse({
+            'status': 'error',
+            'message': str(e)
+        }, status=400)

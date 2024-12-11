@@ -184,11 +184,17 @@ class Note(models.Model):
         return self.pitch
     
 class Lyrics(models.Model):
-    
     ID = models.AutoField(primary_key=True)
-    note = models.ForeignKey(Note, on_delete=models.CASCADE,related_name="lyrics")
-    text = models.CharField(max_length=30)
-    syllable_type = models.CharField(max_length=30)
+    music_sheet = models.ForeignKey(MusicSheet, on_delete=models.CASCADE, related_name="lyrics")  # Changed from 'sheet' to 'music_sheet'
+    text = models.CharField(max_length=255)
+    x_position = models.FloatField()
+    y_position = models.FloatField()
+    measure_number = models.IntegerField()
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
+    class Meta:
+        ordering = ['y_position', 'x_position']
+        
     def __str__(self):
-        return self.text
+        return f"Lyrics '{self.text}' at measure {self.measure_number}"

@@ -78,15 +78,6 @@ class Migration(migrations.Migration):
             ],
         ),
         migrations.CreateModel(
-            name='Lyrics',
-            fields=[
-                ('ID', models.AutoField(primary_key=True, serialize=False)),
-                ('text', models.CharField(max_length=30)),
-                ('syllable_type', models.CharField(max_length=30)),
-                ('note', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='lyrics', to='HelloMusicApp.note')),
-            ],
-        ),
-        migrations.CreateModel(
             name='PasswordResetToken',
             fields=[
                 ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
