@@ -453,7 +453,7 @@ function initializePreviewSystem() {
        const currentRowIndex = Math.floor(y / rowHeight);
        const staffTop = 100 + (rowHeight * currentRowIndex);
        const staffLineSpacing = 5;
-       const relativeY = y - staffTop;
+       const relativeY = y - staffTop + 20;
        const lineIndex = Math.round(relativeY / staffLineSpacing); 
        const measureIndex = getMeasureIndexFromPosition(x, scrollLeft, currentRowIndex);
        
@@ -461,8 +461,7 @@ function initializePreviewSystem() {
 
        if (lineIndex >= -2 && lineIndex <= 10) {
 
-        const snapPositionY = staffTop + lineIndex * staffLineSpacing;
-         
+        const snapPositionY = staffTop + (lineIndex * staffLineSpacing);
              const clef = document.getElementById('clef-select').value;
              const positionInfo = getNoteNameFromPosition(lineIndex, clef);
 
@@ -1504,7 +1503,6 @@ document.querySelector('.staff-scroll-container').addEventListener('click', e =>
     if (clickedNote) {
         const noteId = clickedNote.id; 
         const numericId = noteId.replace(/\D/g, ''); 
-        console.log('Clicked on a note', { numericId });
         addChord(selectedNote, y, measureIndex , numericId); 
         return; 
     }

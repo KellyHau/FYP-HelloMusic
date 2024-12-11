@@ -595,9 +595,9 @@ def edit_sheet(request, sheet_title):
 def save_sheet(request, sheet_id):
     try:
         sheet = get_object_or_404(MusicSheet, ID=sheet_id)
-        user_permission = get_object_or_404(UserMusicSheet, sheet=sheet, user=request.user)
+        user_permission = UserMusicSheet.objects.filter(sheet=sheet, user=request.user,role__in=['owner', 'editor']).first()
         
-        if user_permission.role not in ['owner', 'editor']:
+        if not user_permission.role :
             return JsonResponse({'status': 'error', 'message': 'Permission denied'})
         
         data = json.loads(request.body)
@@ -649,7 +649,7 @@ def save_sheet(request, sheet_id):
 def load_sheet(request, sheet_id):
     try:
         sheet = get_object_or_404(MusicSheet, ID=sheet_id)
-        user_permission = get_object_or_404(UserMusicSheet, sheet=sheet, user=request.user)
+        user_permission = UserMusicSheet.objects.filter(sheet=sheet, user=request.user,role__in=['owner', 'editor']).first()
         
         data = {
             'timeSignature': sheet.time_signature,

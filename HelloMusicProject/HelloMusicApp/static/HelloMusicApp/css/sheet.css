@@ -132,7 +132,6 @@ select {
 }
 
 #staff-container {
-    position: relative;
     display: block;
     width: 100%;
     flex-direction: column;
@@ -290,8 +289,8 @@ button {
 
 .preview-note {
     position: absolute;
-    width: 8px;
-    height: 8px;
+    width: 10px;
+    height: 10px;
     background-color: rgba(0, 0, 0, 0.475);
     border-radius: 50%;
     pointer-events: none; /* Prevent interaction */
