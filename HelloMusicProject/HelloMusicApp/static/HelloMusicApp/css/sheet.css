@@ -5,6 +5,7 @@ body {
     /* Full viewport height */
     display: flex;
     flex-direction: column;
+    background-color: #868e96 !important;
 }
 
 .custom-container {
@@ -53,10 +54,14 @@ select {
 
 .top-menu {
     background-color: #f4f4f4;
-    padding: 10px;
+    padding: 20px;
     border-bottom: 1px solid #ccc;
     box-sizing: border-box;
     flex-shrink: 0;
+    width: fit-content;
+    margin: 20px 200px 0px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .note-palette-label {
@@ -95,9 +100,13 @@ select {
 }
 
 .staff-scroll-container {
+    width: 100%;
+    height: 90%;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 20px;
+
     flex: 1;
-    height: calc(80vh - 40px);
-    overflow: auto;
     background: white;
     border: 1px solid #ccc;
     border-radius: 8px;
@@ -113,10 +122,13 @@ select {
 #staff-container {
     display: block;
     width: 100%;
+    flex-direction: column;
+    align-items: center;
+
     overflow: auto;
-    /*min-width: fit-content;*/
+    min-width: fit-content;
     background: white;
-    /*margin: 0 auto;*/
+    margin: 0 auto;
 }
 
 button {
@@ -156,6 +168,9 @@ button {
 }
 
 .staff-row {
+    margin-bottom: 20px;
+    width: 100%;
+
     width: fit-content;
     height: 150px;
     margin-bottom: 60px;
@@ -226,6 +241,7 @@ button {
     height: 2px;
     pointer-events: none;
     z-index: 998;
+    
 }
 
 .staff-space-highlight {
@@ -256,12 +272,13 @@ button {
 
 .preview-note {
     position: absolute;
-    width: 10px;
-    height: 10px;
+    width: 8px;
+    height: 8px;
     background-color: black;
     border-radius: 50%;
     pointer-events: none; /* Prevent interaction */
     z-index: 9999; /* Ensure it's above other elements */
+    transform: translate(50%, 50%);
 }
 
 .lyrics-dialog {

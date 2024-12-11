@@ -252,79 +252,99 @@ async function initAudio() {
 
 // Initialize VexFlow for each measure
 function initializeStaves() {
-  const staffContainer = document.getElementById('staff-container');
-  staffContainer.innerHTML = '';
-  
-  const measuresPerRow = 4;
-  const totalRows = Math.ceil(measures.length / measuresPerRow);
-  
-  // Reset measure widths array
-  measureWidths = [];
-  
-  for (let row = 0; row < totalRows; row++) {
-      const div = document.createElement('div');
-      div.className = 'staff-row';
-      div.id = `staff-row-${row}`;
-      staffContainer.appendChild(div);
-      
-      // Calculate widths for measures in this row
-      const startMeasureIndex = row * measuresPerRow;
-      const rowMeasures = measures.slice(startMeasureIndex, startMeasureIndex + measuresPerRow);
-      
-      // Calculate required widths
-      const rowWidths = rowMeasures.map((measure, i) => {
-          let width = MEASURE_MIN_WIDTH;
-          
-          if (measure && measure.length > 0) {
-              // Add extra width for longer measures
-              width = Math.max(width, MEASURE_MIN_WIDTH + (measure.length * 25));
-          }
-          
-          // Add extra space for clef and signatures if first measure
-          if (i === 0) {
-              width += 60;
-          }
-          
-          // Store the calculated width
-          measureWidths[startMeasureIndex + i] = width;
-          return width;
-      });
-      
-      const totalRowWidth = rowWidths.reduce((sum, width) => sum + width, 0);
-      const renderer = new Vex.Flow.Renderer(div, Vex.Flow.Renderer.Backends.SVG);
-      renderer.resize(totalRowWidth, 150);
-      const context = renderer.getContext();
-      
-      let currentX = 0;
-      for (let i = 0; i < measuresPerRow && (startMeasureIndex + i) < measures.length; i++) {
-          const measureIndex = startMeasureIndex + i;
-          const width = rowWidths[i];
-          
-          const stave = new Vex.Flow.Stave(currentX, 40, width);
-          
-          if (i === 0) {
-              const clef = document.getElementById('clef-select').value;
-              stave.addClef(clef);
-              const keySignature = document.getElementById('key-signature').value;
-              stave.addKeySignature(keySignature);
-              if (row === 0) {
-                  const timeSignature = document.getElementById('time-select').value;
-                  stave.addTimeSignature(timeSignature);
-              }
-          }
-
-          stave.setEndBarType(measureIndex === measures.length - 1 ? 
-              Vex.Flow.Barline.type.END : Vex.Flow.Barline.type.SINGLE);
-          
-          stave.setContext(context).draw();
-          
-          if (measureIndex < measures.length) {
-              drawMeasure(measures[measureIndex], stave, context);
-          }
-          
-          currentX += width;
-      }
-  }
+    const staffContainer = document.getElementById('staff-container');
+    staffContainer.innerHTML = '';
+    
+    // Get the container width
+    const containerWidth = document.querySelector('.staff-scroll-container').clientWidth;
+    const minMeasureWidth = MEASURE_MIN_WIDTH; // 300 from your constants
+    
+    // Reset measure widths array
+    measureWidths = [];
+    
+    // Calculate measure widths first
+    const measuresWithWidths = measures.map((measure, index) => {
+        let width = minMeasureWidth;
+        
+        if (measure && measure.length > 0) {
+            // Add extra width for longer measures, but cap it at a maximum
+            width = Math.min(
+                Math.max(width, minMeasureWidth + (measure.length * 25)),
+                minMeasureWidth * 1.5 // Cap at 1.5 times minimum width
+            );
+        }
+        
+        // Add extra space for clef and signatures if first in row
+        // We'll adjust this later when we know which measures start a row
+        measureWidths[index] = width;
+        return { measure, width };
+    });
+    
+    // Group measures into rows based on available width
+    const rows = [];
+    let currentRow = [];
+    let currentRowWidth = 0;
+    const clefSpace = 60; // Space for clef and signatures
+    
+    measuresWithWidths.forEach((measureData, index) => {
+        const measureWidth = measureData.width;
+        const widthWithClef = currentRow.length === 0 ? measureWidth + clefSpace : measureWidth;
+        
+        if (currentRowWidth + widthWithClef <= containerWidth) {
+            currentRow.push({ ...measureData, index });
+            currentRowWidth += widthWithClef;
+        } else {
+            rows.push(currentRow);
+            currentRow = [{ ...measureData, index }];
+            currentRowWidth = measureWidth + clefSpace;
+        }
+    });
+    
+    // Add the last row if it has any measures
+    if (currentRow.length > 0) {
+        rows.push(currentRow);
+    }
+    
+    // Draw each row
+    rows.forEach((row, rowIndex) => {
+        const div = document.createElement('div');
+        div.className = 'staff-row';
+        div.id = `staff-row-${rowIndex}`;
+        staffContainer.appendChild(div);
+        
+        const totalRowWidth = row.reduce((sum, measureData, i) => 
+            sum + (i === 0 ? measureData.width + clefSpace : measureData.width), 0);
+        
+        const renderer = new Vex.Flow.Renderer(div, Vex.Flow.Renderer.Backends.SVG);
+        renderer.resize(totalRowWidth, 150);
+        const context = renderer.getContext();
+        
+        let currentX = 0;
+        row.forEach((measureData, i) => {
+            const width = measureData.width;
+            const stave = new Vex.Flow.Stave(currentX, 40, width);
+            
+            if (i === 0) {
+                const clef = document.getElementById('clef-select').value;
+                stave.addClef(clef);
+                const keySignature = document.getElementById('key-signature').value;
+                stave.addKeySignature(keySignature);
+                if (rowIndex === 0) {
+                    const timeSignature = document.getElementById('time-select').value;
+                    stave.addTimeSignature(timeSignature);
+                }
+            }
+            
+            stave.setEndBarType(measureData.index === measures.length - 1 ? 
+                Vex.Flow.Barline.type.END : Vex.Flow.Barline.type.SINGLE);
+            
+            stave.setContext(context).draw();
+            
+            drawMeasure(measureData.measure, stave, context);
+            
+            currentX += width;
+        });
+    });
 }
 
 
@@ -362,7 +382,7 @@ function initializePreviewSystem() {
       
        const rowHeight = 210;
        const currentRowIndex = Math.floor(y / rowHeight);
-       const staffTop = 80 + (rowHeight * currentRowIndex);
+       const staffTop = 100 + (rowHeight * currentRowIndex);
        const staffLineSpacing = 5;
        const relativeY = y - staffTop;
        const lineIndex = Math.round(relativeY / staffLineSpacing); 
@@ -413,6 +433,8 @@ function initializePreviewSystem() {
        } else {
            // Hide the preview note if out of bounds
            previewNote.style.display = 'none';
+           staffLineHighlight.style.display = 'none';
+           staffSpaceHighlight.style.display = 'none';
        }
    });
    
@@ -672,7 +694,7 @@ function createNote(duration, lineIndex, clef) {
 function addNote(duration, x, y, measureIndex) {
   const rowHeight = 210;
   const rowIndex = Math.floor(y / rowHeight);
-  const staffTop = 80 + (rowHeight * rowIndex);
+  const staffTop = 100 + (rowHeight * rowIndex);
   const staffLineSpacing = 5;
   const relativeY = y - staffTop;
   const lineIndex = Math.round(relativeY / staffLineSpacing);

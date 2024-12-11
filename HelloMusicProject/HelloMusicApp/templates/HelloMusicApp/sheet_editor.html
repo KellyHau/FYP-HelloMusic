@@ -3,35 +3,35 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <title>Sheet Detail</title>
+    <title>{{ sheet_title }}</title>
+    <link rel="icon" href="{% static 'HelloMusicApp/images/favicon.ico' %}" type="image/x-icon"/>
     <link href="{% static 'HelloMusicApp/css/sheet.css' %}" rel="stylesheet" />
     <link href="{% static 'HelloMusicApp/css/bootstrap.min.css' %}" rel="stylesheet">
   </head>
   <body> 
 <div id="sheet-editor" data-sheet-id="{{ sheet_id }}" data-sheet-title="{{ sheet_title }}">
   <div class="top-menu">
-        <label for="note-palette"  class="note-palette-label">Note Palette</label>
-        <div class="note-palette">
-            <div class="draggable-note" draggable="true" data-duration="w" title="Whole Note">&#119133;</div>
-            <div class="draggable-note" draggable="true" data-duration="h" title="Half Note">&#119134;</div>
-            <div class="draggable-note" draggable="true" data-duration="q" title="Quarter Note">&#119135;</div>
-            <div class="draggable-note" draggable="true" data-duration="8" title="Eighth Note">&#119136;</div>
-            <div class="draggable-note" draggable="true" data-duration="16" title="Sixteenth Note">&#119137;</div>
-            <div class="draggable-note">&#9998;</div>
-            <div class="draggable-note" id="lyrics-mode-btn" title="Add lyrics/text">
-              <i class="fas fa-font"></i> &#10010;
-            </div>
+    <div class="note-palette">
+      <label for="note-palette"  class="note-palette-label">Note Palette</label>
+        <div class="draggable-note" draggable="true" data-duration="w" title="Whole Note">&#119133;</div>
+        <div class="draggable-note" draggable="true" data-duration="h" title="Half Note">&#119134;</div>
+        <div class="draggable-note" draggable="true" data-duration="q" title="Quarter Note">&#119135;</div>
+        <div class="draggable-note" draggable="true" data-duration="8" title="Eighth Note">&#119136;</div>
+        <div class="draggable-note" draggable="true" data-duration="16" title="Sixteenth Note">&#119137;</div>
+        <div class="draggable-note">&#9998;</div>
+        <div class="draggable-note" id="lyrics-mode-btn" title="Add lyrics/text">
+          <i class="fas fa-font"></i> &#10010;
         </div>
         <div class="playback-controls">
-            <button class="btn btn-success" id="play">Play</button>
-            <button class="btn btn-success" id="stop">Stop</button>
+          <button class="btn btn-success" id="play">Play</button>
+          <button class="btn btn-success" id="stop">Stop</button>
         </div>
-        
-      </div>
+    </div>
+  </div>
 
     <div class="container-fluid custom-container">      
       <div class="row flex-fill justify-content-center px-4">
-      <div class="col-auto me-3 controls">
+      <div class="col-auto me-3 controls" style="height: fit-content;">
         <div class="control-group">
           <label for="clef-select">Select Clef:</label>
           <select id="clef-select">
