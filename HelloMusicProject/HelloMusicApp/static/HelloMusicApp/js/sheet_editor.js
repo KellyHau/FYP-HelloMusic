@@ -793,15 +793,15 @@ function createChord(duration, lineIndex, clef,measure) {
     });
 }
 
-function addNote(duration, y, measureIndex) {
-// First, add a helper function to validate note placement
+
+// // First, add a helper function to validate note placement
 function canNoteFitTimeSignature(duration) {
     const { num, den } = getTimeSignature();
     const maxBeatsPerMeasure = num;
     const noteBeats = DURATIONS[duration]?.beats || 0;
     
     return noteBeats <= maxBeatsPerMeasure;
-}
+} 
 
 function addNote(duration, x, y, measureIndex) {
     // First check if the note duration is valid for the time signature
@@ -1014,7 +1014,7 @@ function updateSelectableNotes() {
             note.style.opacity = '1';
         }
     }
-}
+
 
 // function handleDragStart(e) {
 //     if (e.target.classList.contains('disabled-note')) {
