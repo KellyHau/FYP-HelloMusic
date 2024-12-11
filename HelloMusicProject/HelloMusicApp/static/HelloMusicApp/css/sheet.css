@@ -279,7 +279,12 @@ button {
 
 .disabled-note {
     opacity: 0.5;
-    cursor: not-allowed;
+    pointer-events: none;
+    cursor: not-allowed !important;
+}
+
+.disabled-note:hover {
+    cursor: not-allowed !important;
 }
 
 .preview-note {

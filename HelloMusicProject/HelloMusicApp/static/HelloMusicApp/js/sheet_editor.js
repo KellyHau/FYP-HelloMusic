@@ -691,7 +691,22 @@ function createNote(duration, lineIndex, clef) {
   return note;
 }
 
+// First, add a helper function to validate note placement
+function canNoteFitTimeSignature(duration) {
+    const { num, den } = getTimeSignature();
+    const maxBeatsPerMeasure = num;
+    const noteBeats = DURATIONS[duration]?.beats || 0;
+    
+    return noteBeats <= maxBeatsPerMeasure;
+}
+
 function addNote(duration, x, y, measureIndex) {
+    // First check if the note duration is valid for the time signature
+    if (!canNoteFitTimeSignature(duration)) {
+        alert(`This note (${DURATIONS[duration].beats} beats) exceeds the maximum beats allowed per measure (${getTimeSignature().num} beats).`);
+        return false;
+    }
+
   const rowHeight = 210;
   const rowIndex = Math.floor(y / rowHeight);
   const staffTop = 100 + (rowHeight * rowIndex);
@@ -726,20 +741,35 @@ function addNote(duration, x, y, measureIndex) {
                   measures.push([]);
               }
               
-              const nextMeasureBeats = getCurrentBeats(nextMeasureIndex);
-              if (nextMeasureBeats + newNoteBeats <= maxBeatsPerMeasure) {
-                  measures[nextMeasureIndex].push(note);
-              } else {
-                  // If no space in next measure, create a new one
-                  measures.push([note]);
-              }
+               // Add note to the next empty or partially filled measure
+                let placed = false;
+                while (!placed && nextMeasureIndex < measures.length + 1) {
+                    const nextMeasureBeats = getCurrentBeats(nextMeasureIndex);
+                    if (nextMeasureBeats + newNoteBeats <= maxBeatsPerMeasure) {
+                        // Ensure the measure exists
+                        while (measures.length <= nextMeasureIndex) {
+                            measures.push([]);
+                        }
+                        measures[nextMeasureIndex].push(note);
+                        placed = true;
+                    } else {
+                        nextMeasureIndex++;
+                    }
+                }
+                
+                if (!placed) {
+                    // Create new measure if needed
+                    measures.push([note]);
+                }
           }
           
           history.pushState();
           initializeStaves();
+          return true;
       }
   }
-  triggerAutoSave();
+//   triggerAutoSave();
+return false;
 }
 
 function drawMeasure(measureNotes, stave, context) {
@@ -826,7 +856,8 @@ function createHighlightElements() {
 // Add this function to handle note enabling/disabling
 function updateSelectableNotes() {
     const { num, den } = getTimeSignature();
-    const maxBeats = num * (4/den);  // Convert to quarter note beats
+    // const maxBeats = num * (4/den);  // Convert to quarter note beats
+    const maxBeats = num;
 
     // For each draggable note
     document.querySelectorAll('.draggable-note').forEach(note => {
@@ -837,10 +868,21 @@ function updateSelectableNotes() {
             // Disable the note
             note.classList.add('disabled-note');
             note.draggable = false;
+            note.style.cursor = 'not-allowed';
+            note.style.opacity = '0.5';
+
+            // If this note is currently selected, deselect it
+            if (selectedNoteSymbol === note) {
+                selectedNoteSymbol.classList.remove('selected-note');
+                selectedNoteSymbol = null;
+                selectedNote = null;
+            }
         } else {
             // Enable the note
             note.classList.remove('disabled-note');
             note.draggable = true;
+            note.style.cursor = 'pointer';
+            note.style.opacity = '1';
         }
     });
 }
@@ -1277,10 +1319,22 @@ document.addEventListener("keydown", (e) => {
 });
 
 document.querySelectorAll('.draggable-note').forEach(note => {
-    note.addEventListener('click', () => {
+    note.addEventListener('click', (e) => {
+        const duration = note.dataset.duration;
+
+        // Check if note duration is valid for time signature
+        if (!canNoteFitTimeSignature(duration)) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            const { num, den } = getTimeSignature();
+            const noteBeats = DURATIONS[duration]?.beats || 0;
+            alert(`This note duration (${noteBeats} beats) exceeds the maximum beats allowed per measure (${num} beats) in ${num}/${den} time signature.`);
+            return;
+        }
 
         if(selectedNoteSymbol){
-        selectedNoteSymbol.classList.remove('selected-note'); 
+            selectedNoteSymbol.classList.remove('selected-note'); 
         }
 
         // Set the clicked note as the selected note
@@ -1290,7 +1344,7 @@ document.querySelectorAll('.draggable-note').forEach(note => {
         selectedNoteSymbol.classList.add('selected-note');
         
         // Store the selected note's duration
-        selectedNote = note.dataset.duration;
+        selectedNote = duration;
        
     });
 });
@@ -1323,8 +1377,11 @@ document.querySelector('.staff-scroll-container').addEventListener('click', e =>
         addLyrics(x, y, measureIndex);
     } else if (selectedNote) {
         console.log('Handling note addition');
-        // Existing note addition logic
-        addNote(selectedNote, x, y, measureIndex);
+        // Try to add the note and handle the result
+        const added = addNote(selectedNote, x, y, measureIndex);
+        if (added) {
+            triggerAutoSave();
+        }
     } else {
         console.log('No mode selected');
         // Optional: Show message to user
