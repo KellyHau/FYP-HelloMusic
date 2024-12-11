@@ -154,7 +154,6 @@ class Chord(models.Model):
     ID = models.AutoField(primary_key=True)
     measure = models.ForeignKey(Measure, on_delete=models.CASCADE,related_name="chords")
     note = models.CharField(max_length=100)
-    chord_symbol = models.CharField(max_length=30)
 
     def __str__(self):
         return self.chord_symbol

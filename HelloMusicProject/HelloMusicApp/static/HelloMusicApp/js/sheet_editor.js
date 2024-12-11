@@ -1,4 +1,4 @@
-const { Factory, Renderer, Stave, Voice, Formatter } = Vex.Flow;
+const { Factory, Renderer, Stave, Voice, Formatter} = Vex.Flow;
 
 // Initialize music state
 let measures = [[]];
@@ -15,6 +15,7 @@ let staffSpaceHighlight = null;
 let isLyricsMode = false;
 let selectedLyrics = null;
 let lyrics = [];
+let previewNote = null;  
 
 
 // Duration mappings
@@ -53,12 +54,14 @@ const history = {
     // Store both measures and current clef type
     const state = {
         clef: document.getElementById('clef-select').value,
-        measures: measures.map(measure => 
+        measures: measures.map(measure =>
             measure.map(note => ({
                 keys: note.keys,
                 duration: note.duration,
-                accidental: note.modifiers.find(m => m instanceof Vex.Flow.Accidental)?.type,
-                articulation: note.modifiers.find(m => m instanceof Vex.Flow.Articulation)?.type,
+                accidental: Array.isArray(note.modifiers) ? 
+                    note.modifiers.find(m => m instanceof Vex.Flow.Accidental)?.type : undefined,
+                articulation: Array.isArray(note.modifiers) ? 
+                    note.modifiers.find(m => m instanceof Vex.Flow.Articulation)?.type : undefined,
                 tied: note.tied,
                 tieStart: note.tieStart
             }))
@@ -95,8 +98,10 @@ const history = {
             measure.map(note => ({
                 keys: note.keys,
                 duration: note.duration,
-                accidental: note.modifiers.find(m => m instanceof Vex.Flow.Accidental)?.type,
-                articulation: note.modifiers.find(m => m instanceof Vex.Flow.Articulation)?.type,
+                accidental: Array.isArray(note.modifiers) ? 
+                    note.modifiers.find(m => m instanceof Vex.Flow.Accidental)?.type : undefined,
+                articulation: Array.isArray(note.modifiers) ? 
+                    note.modifiers.find(m => m instanceof Vex.Flow.Articulation)?.type : undefined,
                 tied: note.tied,
                 tieStart: note.tieStart
             }))
@@ -140,6 +145,7 @@ const history = {
 // Constants for layout
 const MEASURE_WIDTH = 350;
 const MEASURE_MIN_WIDTH = 300;
+const DEFAULT_ROWS = 3;
 const MEASURES_PER_ROW = 4;
 const ROW_HEIGHT = 210;
 const STAFF_TOP_OFFSET = 100;
@@ -172,12 +178,30 @@ function saveSheetData() {
       const notes = [];
       const rests = [];
 
+
       measure.forEach(note => {
           if (note.duration.includes('r')) {
               rests.push({
                   duration: note.duration.replace('r', '')
               });
           } else {
+
+            if(note.keys.length > 1)
+            {
+                const keys = note.keys;
+                let key = null; 
+                key = keys.join(','); 
+
+                notes.push({
+                    pitch:  key,
+                    duration: note.duration,
+                    tie: note.tieStart ? 'start' : (note.tied ? 'end' : ''),
+                    accidental: note.modifiers.find(m => m instanceof Vex.Flow.Accidental)?.type || '',
+                    duration_value: DURATIONS[note.duration]?.beats || 1.0,
+                    dynamics: '',
+                    articulation: note.modifiers.find(m => m instanceof Vex.Flow.Articulation)?.type || ''
+                });
+            }else{
               notes.push({
                   pitch: note.keys[0],
                   duration: note.duration,
@@ -187,8 +211,10 @@ function saveSheetData() {
                   dynamics: '',
                   articulation: note.modifiers.find(m => m instanceof Vex.Flow.Articulation)?.type || ''
               });
+            }
           }
       });
+
 
       return {
           measure_number: measureIndex + 1,
@@ -234,13 +260,14 @@ function triggerAutoSave() {
 }
 
 // Initialize Tone.js
+
 async function initAudio() {
   try {
     await Tone.start();
     console.log('Audio is ready');
     
     if (!synth) {
-        synth = new Tone.Synth().toDestination();
+        synth = new Tone.PolySynth().toDestination();
     }
     audioInitialized = true;
     return true;
@@ -304,7 +331,7 @@ function initializeStaves() {
     if (currentRow.length > 0) {
         rows.push(currentRow);
     }
-    
+
     // Draw each row
     rows.forEach((row, rowIndex) => {
         const div = document.createElement('div');
@@ -341,6 +368,32 @@ function initializeStaves() {
             stave.setContext(context).draw();
             
             drawMeasure(measureData.measure, stave, context);
+
+            let noteid = 0;
+
+            measureData.measure.forEach(note => {
+                const bbox = note.getBoundingBox();
+                const svg = context.svg; 
+                const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+
+                const topY = stave.getYForLine(0);
+                const bottomY = stave.getYForLine(4);
+                const measureHeight = bottomY - topY;
+
+                rect.setAttribute("x", bbox.getX() - 10); 
+                rect.setAttribute("y", topY - 20);
+                rect.setAttribute("width", bbox.getW() + 20);
+                rect.setAttribute("height",  measureHeight + (2 * 20));
+                rect.setAttribute("fill", "transparent");
+                rect.setAttribute("stroke", "transparent");
+                rect.setAttribute("class", "clickable-note");
+                rect.setAttribute("data-note", note.keys[0]);
+
+                const uniqueId = `note-${noteid++}`; 
+                rect.setAttribute("id", uniqueId);
+                svg.appendChild(rect);
+
+                });
             
             currentX += width;
         });
@@ -348,10 +401,25 @@ function initializeStaves() {
 }
 
 
+function calPreviewNote(e){
+
+    const staffscrollContainer = document.querySelector('.staff-scroll-container');
+
+    const staffRect = staffscrollContainer.getBoundingClientRect();
+    const scrollLeft = staffscrollContainer.scrollLeft;
+    const scrollTop = staffscrollContainer.scrollTop;
+   
+    // Calculate x and y relative to the container
+    const x = e.clientX - staffRect.left + scrollLeft;
+    const y = e.clientY - staffRect.top + scrollTop; 
+
+    return {x,y};
+}
+
 // Initialize preview system
 function initializePreviewSystem() {
   createHighlightElements();
-
+  
   // Add drag event listeners to draggable notes
 //   document.querySelectorAll('.draggable-note').forEach(note => {
 //       note.addEventListener('dragstart', handleDragStart);
@@ -359,17 +427,18 @@ function initializePreviewSystem() {
 //   });
 
   // Add drag event listeners to staff container
-  const staffContainer = document.querySelector('.staff-scroll-container');
+
+  const staffContainer = document.getElementById('staff-container');
+  const staffscrollContainer = document.querySelector('.staff-scroll-container');
 
   const previewNote = document.createElement('div');
   previewNote.className = 'preview-note';
-  staffContainer.appendChild(previewNote);
+  staffscrollContainer.appendChild(previewNote);
 
-    // Hide the preview note by default
-   previewNote.style.display = 'none';
+   staffContainer.addEventListener('mousemove', e => {  
+   
+    previewNote.style.display = 'none';
 
-
-   staffContainer.addEventListener('mousemove', e => {
        if (!selectedNote) return;
 
        const staffRect = staffContainer.getBoundingClientRect();
@@ -379,7 +448,7 @@ function initializePreviewSystem() {
        // Calculate x and y relative to the container
        const x = e.clientX - staffRect.left + scrollLeft;
        const y = e.clientY - staffRect.top + scrollTop; 
-      
+
        const rowHeight = 210;
        const currentRowIndex = Math.floor(y / rowHeight);
        const staffTop = 100 + (rowHeight * currentRowIndex);
@@ -387,26 +456,26 @@ function initializePreviewSystem() {
        const relativeY = y - staffTop;
        const lineIndex = Math.round(relativeY / staffLineSpacing); 
        const measureIndex = getMeasureIndexFromPosition(x, scrollLeft, currentRowIndex);
-   
-   
+       
+     
+
        if (lineIndex >= -2 && lineIndex <= 10) {
-         const snapPosition = staffTop + (lineIndex * staffLineSpacing);
+
+        const snapPositionY = staffTop + lineIndex * staffLineSpacing;
          
-         const clef = document.getElementById('clef-select').value;
-         
+             const clef = document.getElementById('clef-select').value;
              const positionInfo = getNoteNameFromPosition(lineIndex, clef);
+
              if (positionInfo) {
-                 // Calculate position for highlighting
-                 const snapPosition = staffTop + (lineIndex * staffLineSpacing);
-                 
+         
                  // Update visual feedback with absolute positioning
                  if (positionInfo.type === 'line') {
                      staffLineHighlight.style.display = 'block';
-                     staffLineHighlight.style.top = `${snapPosition}px`;
+                     staffLineHighlight.style.top = `${snapPositionY}px`;
                      staffSpaceHighlight.style.display = 'none';
                  } else {
                      staffSpaceHighlight.style.display = 'block';
-                     staffSpaceHighlight.style.top = `${snapPosition - staffLineSpacing/2}px`;
+                     staffSpaceHighlight.style.top = `${snapPositionY - staffLineSpacing/2}px`;
                      staffLineHighlight.style.display = 'none';
                  }
                  
@@ -426,10 +495,9 @@ function initializePreviewSystem() {
                  tooltip.style.display = 'block';
              }
 
+           previewNote.style.left = `${calPreviewNote(e).x - 11}px`; 
+           previewNote.style.top = `${calPreviewNote(e).y - 8}px`; 
            previewNote.style.display = 'block';
-           previewNote.style.left = `${x - 8}px`; 
-           previewNote.style.top = `${snapPosition - 8}px`;
-
        } else {
            // Hide the preview note if out of bounds
            previewNote.style.display = 'none';
@@ -503,11 +571,20 @@ function getTimeSignature() {
 // Add getCurrentBeats function if not already present
 function getCurrentBeats(measureIndex) {
   if (!measures[measureIndex]) return 0;
-  
+
   return measures[measureIndex].reduce((sum, note) => {
+
       const duration = note.duration.replace('r', ''); // Remove 'r' from rest durations
       return sum + (DURATIONS[duration]?.beats || 0);
   }, 0);
+}
+
+function getBeatOnMeasure(relativeX,measureWidth, beatWidth) {
+    const measureIndex = Math.floor(relativeX / measureWidth);
+    const beatPositionInMeasure = (relativeX % measureWidth) / beatWidth;
+    const beatIndex = Math.floor(beatPositionInMeasure);
+
+    return { measureIndex, beatIndex, beatFraction: beatPositionInMeasure % 1 };
 }
 
 //    function getAccidentalSymbol(type) {
@@ -671,6 +748,8 @@ function fillWithRests(voice, measureNotes, totalTicks, stave, context) {
   }
 }
 
+  
+
 // Helper function to create note object
 function createNote(duration, lineIndex, clef) {
   // Get position info
@@ -691,7 +770,30 @@ function createNote(duration, lineIndex, clef) {
   return note;
 }
 
-function addNote(duration, x, y, measureIndex) {
+function createChord(duration, lineIndex, clef,measure) {
+  // Get position info
+  const positionInfo = getNoteNameFromPosition(lineIndex, clef);
+  let chord = [];
+
+    if (!positionInfo) {
+        return null;
+    }
+
+    for (let key of measure.keys){
+    chord.push(key);
+    }
+
+    chord.push(positionInfo.note);
+
+    return new Vex.Flow.StaveNote({
+        keys: chord,
+        duration: duration,
+        auto_stem: true,
+        clef: clef
+    });
+}
+
+function addNote(duration, y, measureIndex) {
   const rowHeight = 210;
   const rowIndex = Math.floor(y / rowHeight);
   const staffTop = 100 + (rowHeight * rowIndex);
@@ -701,8 +803,8 @@ function addNote(duration, x, y, measureIndex) {
   
   if (lineIndex >= -2 && lineIndex <= 10) {
       const clef = document.getElementById('clef-select').value;
-      const note = createNote(duration, lineIndex, clef);
-      
+      const note = createNote(duration, lineIndex, clef);   
+     
       if (note) {
           const { num, den } = getTimeSignature();
           const maxBeatsPerMeasure = num;
@@ -715,7 +817,7 @@ function addNote(duration, x, y, measureIndex) {
           while (measures.length <= measureIndex) {
               measures.push([]);
           }
-          
+
           // Check if note fits in current measure
           if (currentBeats + newNoteBeats <= maxBeatsPerMeasure) {
               measures[measureIndex].push(note);
@@ -742,6 +844,30 @@ function addNote(duration, x, y, measureIndex) {
   triggerAutoSave();
 }
 
+function addChord(duration, y, measureIndex, notePosition) {
+    const rowHeight = 210;
+    const rowIndex = Math.floor(y / rowHeight);
+    const staffTop = 100 + (rowHeight * rowIndex);
+    const staffLineSpacing = 5;
+    const relativeY = y - staffTop;
+    const lineIndex = Math.round(relativeY / staffLineSpacing);
+    const measure = measures[measureIndex][notePosition];
+
+    if (lineIndex >= -2 && lineIndex <= 10) {  
+        
+        const clef = document.getElementById('clef-select').value;
+        const chord = createChord(duration,lineIndex,clef,measure);  
+
+        if (chord) {
+            measures[measureIndex][notePosition] = chord;
+            history.pushState();
+            initializeStaves();
+        }
+        triggerAutoSave();
+}
+}
+
+
 function drawMeasure(measureNotes, stave, context) {
   const { num, den } = getTimeSignature();
   const totalTicks = (num / den) * 4096;
@@ -754,6 +880,8 @@ function drawMeasure(measureNotes, stave, context) {
 
   fillWithRests(voice, measureNotes, totalTicks, stave, context);
 }
+
+  
 
 async function playMeasures() {
   if (!synth || !audioInitialized) {
@@ -776,10 +904,10 @@ async function playMeasures() {
           for (let noteIndex = 0; noteIndex < measure.length && isPlaying; noteIndex++) {
               const note = measure[noteIndex];
               if (!note.duration.includes("r")) {  // Skip rests
-                  const noteKey = note.keys[0].split("/")[0];
-                  const octave = note.keys[0].split("/")[1];
-                  const frequency = NOTE_FREQUENCIES[noteKey.toLowerCase()] * 
-                      Math.pow(2, octave - 4);
+                const frequency = note.keys.map(noteKey => {
+                    const [key, octave] = noteKey.split("/");  // Split note into key and octave
+                    return NOTE_FREQUENCIES[key.toLowerCase()] * Math.pow(2, octave - 4);  // Calculate frequency
+                });
 
                   // Use Tone.js timing
                   synth.triggerAttackRelease(
@@ -824,26 +952,26 @@ function createHighlightElements() {
 }
 
 // Add this function to handle note enabling/disabling
-function updateSelectableNotes() {
-    const { num, den } = getTimeSignature();
-    const maxBeats = num * (4/den);  // Convert to quarter note beats
+// function updateSelectableNotes() {
+//     const { num, den } = getTimeSignature();
+//     const maxBeats = num * (4/den);  // Convert to quarter note beats
 
-    // For each draggable note
-    document.querySelectorAll('.draggable-note').forEach(note => {
-        const duration = note.dataset.duration;
-        const noteBeats = DURATIONS[duration]?.beats || 0;
+//     // For each draggable note
+//     document.querySelectorAll('.draggable-note').forEach(note => {
+//         const duration = note.dataset.duration;
+//         const noteBeats = DURATIONS[duration]?.beats || 0;
         
-        if (noteBeats > maxBeats) {
-            // Disable the note
-            note.classList.add('disabled-note');
-            note.draggable = false;
-        } else {
-            // Enable the note
-            note.classList.remove('disabled-note');
-            note.draggable = true;
-        }
-    });
-}
+//         if (noteBeats > maxBeats) {
+//             // Disable the note
+//             note.classList.add('disabled-note');
+//             note.draggable = false;
+//         } else {
+//             // Enable the note
+//             note.classList.remove('disabled-note');
+//             note.draggable = true;
+//         }
+//     });
+// }
 
 // function handleDragStart(e) {
 //     if (e.target.classList.contains('disabled-note')) {
@@ -1205,7 +1333,7 @@ document.getElementById('time-select').addEventListener('change', function() {
     if(confirmation){
         measures = [[]];
         currentMeasureIndex = 0;
-        updateSelectableNotes();
+        //updateSelectableNotes();
         initializeStaves();
         triggerAutoSave();
         document.getElementById("error-message").textContent = "";
@@ -1302,8 +1430,6 @@ document.querySelector('.staff-scroll-container').addEventListener('click', e =>
         return; // Ignore clicks on lyrics or their edit dialogs
     }
 
-    console.log('Staff clicked', { isLyricsMode, selectedNote });
-
     const staffContainer = e.currentTarget;
     const staffRect = staffContainer.getBoundingClientRect();
     const scrollLeft = staffContainer.scrollLeft;
@@ -1313,9 +1439,20 @@ document.querySelector('.staff-scroll-container').addEventListener('click', e =>
     const x = e.clientX - staffRect.left + scrollLeft;
     const y = e.clientY - staffRect.top + scrollTop;
 
+
     const rowHeight = 210;
     const currentRowIndex = Math.floor(y / rowHeight);
-    const measureIndex = getMeasureIndexFromPosition(x, scrollLeft, currentRowIndex);    
+    const measureIndex = getMeasureIndexFromPosition(x, scrollLeft, currentRowIndex);
+
+    // Check if the click is on a note
+    const clickedNote = e.target.closest('.clickable-note'); 
+    if (clickedNote) {
+        const noteId = clickedNote.id; 
+        const numericId = noteId.replace(/\D/g, ''); 
+        console.log('Clicked on a note', { numericId });
+        addChord(selectedNote, y, measureIndex , numericId); 
+        return; 
+    }
 
     if (isLyricsMode) {
         console.log('Handling lyrics addition');
@@ -1324,14 +1461,13 @@ document.querySelector('.staff-scroll-container').addEventListener('click', e =>
     } else if (selectedNote) {
         console.log('Handling note addition');
         // Existing note addition logic
-        addNote(selectedNote, x, y, measureIndex);
+        addNote(selectedNote, y, measureIndex);
     } else {
         console.log('No mode selected');
         // Optional: Show message to user
         alert("Please select a note from the palette first or enable lyrics mode.");
     }
 });
-
 
 // document.querySelectorAll(".draggable-note").forEach((note) => {
 //   note.addEventListener("dragstart", (e) => {
@@ -1424,7 +1560,7 @@ document.addEventListener('DOMContentLoaded', function() {
               if (sheetData.timeSignature) {
                   document.getElementById('time-select').value = sheetData.timeSignature;
               }
-              updateSelectableNotes();
+              //updateSelectableNotes();
               
               // Set key signature
               if (sheetData.keySignature) {
@@ -1438,8 +1574,10 @@ document.addEventListener('DOMContentLoaded', function() {
                   
                   // Add notes
                   measureData.notes.forEach(noteData => {
-                      const note = new Vex.Flow.StaveNote({
-                          keys: [noteData.pitch],
+                    const notesArray = noteData.pitch.split(',');
+                    
+                      const note = new Vex.Flow.StaveNote({       
+                          keys: notesArray,
                           duration: noteData.duration,
                           auto_stem: true,
                           clef: sheetData.clefType
