@@ -453,7 +453,7 @@ function initializePreviewSystem() {
        const currentRowIndex = Math.floor(y / rowHeight);
        const staffTop = 100 + (rowHeight * currentRowIndex);
        const staffLineSpacing = 5;
-       const relativeY = y - staffTop;
+       const relativeY = y - staffTop + 20;
        const lineIndex = Math.round(relativeY / staffLineSpacing); 
        const measureIndex = getMeasureIndexFromPosition(x, scrollLeft, currentRowIndex);
        
