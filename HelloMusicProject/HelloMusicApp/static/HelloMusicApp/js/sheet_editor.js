@@ -49,7 +49,42 @@ const NOTE_FREQUENCIES = {
 const history = {
   undoStack: [],
   redoStack: [],
-  
+  initialLoadedState: null,
+
+  // Add method to save initial state
+  saveLoadedState(sheetData) {
+        const loadedState = {
+            clef: sheetData.clefType || document.getElementById('clef-select').value,
+            measures: measures.map(measure =>
+                measure.map(note => ({
+                    keys: note.keys,
+                    duration: note.duration,
+                    accidental: Array.isArray(note.modifiers) ? 
+                        note.modifiers.find(m => m instanceof Vex.Flow.Accidental)?.type : undefined,
+                    articulation: Array.isArray(note.modifiers) ? 
+                        note.modifiers.find(m => m instanceof Vex.Flow.Articulation)?.type : undefined,
+                    tied: note.tied,
+                    tieStart: note.tieStart
+                }))
+            )
+        };
+        
+        this.initialLoadedState = JSON.stringify(loadedState);
+        this.undoStack = [this.initialLoadedState]; // Start with loaded state
+        this.redoStack = [];
+  },
+
+  resetHistory() {
+    const emptyState = {
+        clef: document.getElementById('clef-select').value,
+        measures: [[]]
+    };
+    this.undoStack = [JSON.stringify(emptyState)];
+    this.redoStack = [];
+    this.updateUndoButtonState();
+    this.updateRodoButtonState();
+},
+
   pushState() {
     // Store both measures and current clef type
     const state = {
@@ -71,14 +106,25 @@ const history = {
     this.undoStack.push(JSON.stringify(state));
     this.redoStack = [];
     if (this.undoStack.length > 50) this.undoStack.shift();
+    this.updateUndoButtonState();
+    this.updateRodoButtonState();
   },
   
   undo() {
-      if (this.undoStack.length > 0) {
+      if (this.undoStack.length > 1) {
           const currentState = this.serializeMeasures();
           this.redoStack.push(currentState);
-          const previousState = JSON.parse(this.undoStack.pop());
+          this.undoStack.pop();
+          const previousState = JSON.parse(this.undoStack[this.undoStack.length - 1]);
+
+          // Check if we're at the initial loaded state
+          if (this.undoStack.length === 1) {
+            console.log("Reached initial loaded state");
+          }
+
           this.restoreState(previousState);
+          this.updateUndoButtonState();
+          this.updateRodoButtonState();
       }
   },
   
@@ -88,7 +134,32 @@ const history = {
           this.undoStack.push(currentState);
           const nextState = JSON.parse(this.redoStack.pop());
           this.restoreState(nextState);
+          this.updateUndoButtonState();
+          this.updateRodoButtonState();
       }
+  },
+
+  // Add new method to update undo button state
+  updateUndoButtonState() {
+    const undoButton = document.getElementById("undo");
+    if (this.undoStack.length > 1) {
+        undoButton.disabled = false;
+        undoButton.classList.remove('disabled');
+    } else {
+        undoButton.disabled = true;
+        undoButton.classList.add('disabled');
+    }
+  },
+
+  updateRodoButtonState() {
+    const redoButton = document.getElementById("redo");
+    if (this.redoStack.length > 0) {
+        redoButton.disabled = false;
+        redoButton.classList.remove('disabled');
+    } else {
+        redoButton.disabled = true;
+        redoButton.classList.add('disabled');
+    }
   },
   
   serializeMeasures() {
@@ -139,7 +210,18 @@ const history = {
     );
     
     initializeStaves();
-}
+  },
+
+  // Check if we can undo further
+  canUndo() {
+    return this.undoStack.length > 1;
+  },
+
+  // Check if we're at initial loaded state
+  isAtLoadedState() {
+      return this.undoStack.length === 1 && 
+             this.undoStack[0] === this.initialLoadedState;
+  }
 };
 
 // Constants for layout
@@ -869,6 +951,7 @@ function addNote(duration, x, y, measureIndex) {
           initializeStaves();
           return true;
       }
+      
   }
 //   triggerAutoSave();
 return false;
@@ -1383,12 +1466,14 @@ document.getElementById('time-select').addEventListener('change', function() {
 });
 
 document.getElementById("clear-notes").addEventListener("click", () => {
-  const confirmation = confirm("Sure to clear all? This action cannot be undo.");
+  const confirmation = confirm("Sure to clear all?");
 
   if(confirmation){
-    for(let i = 0; i < measures.length; i++){
-      measures[i] = [];
-    }
+    measures = [[]];
+    currentMeasureIndex = 0;
+    
+    history.resetHistory();
+
     initializeStaves();
     triggerAutoSave();
     document.getElementById("error-message").textContent = "";
@@ -1428,9 +1513,24 @@ document.getElementById("stop").addEventListener("click", () => {
   document.getElementById("error-message").textContent = "";
 });
 
-document.getElementById("undo").addEventListener("click", () => history.undo());
+document.getElementById("undo").addEventListener("click", () => {
+    history.undo();
+    
+    // Optional: Disable undo button or show message when reaching loaded state
+    if (history.isAtLoadedState()) {
+        document.getElementById("undo").disabled = true;
+        // Or show a message
+        console.log("Reached initial loaded state");
+    }
 
-document.getElementById("redo").addEventListener("click", () => history.redo());
+    triggerAutoSave();
+});
+
+document.getElementById("redo").addEventListener("click", () => {
+    history.redo();
+    triggerAutoSave();
+
+});
 
 document.addEventListener("keydown", (e) => {
   if (e.key === "Delete" || e.key === "Backspace") {
@@ -1666,6 +1766,9 @@ document.addEventListener('DOMContentLoaded', function() {
                   
                   measures.push(measure);
               });
+
+              // After loading all the notes and measures, save the initial state
+              history.saveLoadedState(sheetData);
               
               // Redraw the staves with loaded data
               initializeStaves();
