@@ -25,7 +25,6 @@ urlpatterns = [
     path('renameSheet/<int:sheet_id>/', views.renameSheet, name='renameSheet'),
     path('shareSheet/<int:sheet_id>/', views.share_sheet_to_user, name='shareSheet'),
     path('search/', views.search_sheet_folder, name='search'),
-    path('sheet/', views.sheet, name='sheet'),
     path('sheet/<str:sheet_title>/', views.edit_sheet, name='edit_sheet'),
     path('api/save_sheet/<int:sheet_id>/', views.save_sheet, name='save_sheet'),
     path('api/load_sheet/<int:sheet_id>/', views.load_sheet, name='load_sheet'),

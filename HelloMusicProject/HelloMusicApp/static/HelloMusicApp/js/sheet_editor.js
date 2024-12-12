@@ -1590,13 +1590,12 @@ document.getElementById('key-signature').addEventListener('change', function() {
 // Initialize everything when the page loads
 document.addEventListener('DOMContentLoaded', function() {
   const sheetId = document.getElementById('sheet-editor').dataset.sheetId;
-  
+  checkUserRole();
   // First initialize empty sheet
   measures = [[]];
 
   // Initialize lyrics array
   lyrics = [];
-  
   // Load both sheet data and lyrics data
     Promise.all([
         fetch(`/api/load_sheet/${sheetId}/`).then(response => response.json()),
@@ -1681,3 +1680,54 @@ document.addEventListener('DOMContentLoaded', function() {
           console.error('Error loading sheet:', error);
       });
 });
+
+function setStaffContainerInteraction(isViewer) {
+    const staffScrollContainer = document.querySelector('.staff-scroll-container');
+    const staffContainer = document.getElementById('staff-container');
+    const note = document.querySelector('.note-palette');
+    const control = document.querySelector('.controls');
+
+    if (isViewer) {
+      // Apply interaction-blocking styles when user is a viewer
+      staffScrollContainer.style.pointerEvents = 'none';
+      staffScrollContainer.style.userSelect = 'none';
+      staffContainer.style.pointerEvents = 'none';
+      staffContainer.style.userSelect = 'none';
+
+      note.style.pointerEvents = 'none';
+      note.style.userSelect = 'none';
+      control.style.pointerEvents = 'none';
+      control.style.userSelect = 'none';
+      
+      // Optional: Add visual indication of disabled state
+      note.style.opacity = '0.7';
+      control.style.opacity = '0.7';
+      staffScrollContainer.style.cursor = 'not-allowed';
+    } else {
+      // Remove interaction-blocking styles when user is not a viewer
+      staffScrollContainer.style.pointerEvents = '';
+      staffScrollContainer.style.userSelect = '';
+      staffContainer.style.pointerEvents = '';
+      staffContainer.style.userSelect = '';
+
+      note.style.pointerEvents = '';
+      note.style.userSelect = '';
+      control.style.pointerEvents = '';
+      control.style.userSelect = '';
+      
+      // Remove optional visual indicators
+      note.style.opacity = '';
+      control.style.opacity = '';
+      staffScrollContainer.style.cursor = '';
+    }
+  }
+
+  function checkUserRole() {
+
+    const userRole =  document.getElementById('sheet-editor').dataset.userRole;
+  
+    // Apply interaction based on role
+    setStaffContainerInteraction(userRole === 'viewer' || userRole === 'Viewer' );
+  }
+  
+

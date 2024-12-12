@@ -562,34 +562,23 @@ def search_sheet_folder(request):
     return JsonResponse({'sheets': sheets, 'folders': folders})
 
 # Music Notation Management
-def sheet(request):
-    context = {}
-    return render(request,"HelloMusicApp/sheet.html",context)
 
 def edit_sheet(request, sheet_title):
     sheet = get_object_or_404(MusicSheet, title=sheet_title)
-    user_permission = UserMusicSheet.objects.filter(sheet=sheet, user=request.user,role__in=['owner', 'editor']).first()
+    current_user = UserMusicSheet.objects.filter(user=request.user,sheet=sheet.ID).first()
     
-    if not user_permission.role :
-        messages.error(request, "You don't have permission to edit this sheet")
-        return redirect('home')
-    
-    # Get the template directory path
-    template_dir = os.path.join(settings.BASE_DIR, 'HelloMusicApp', 'templates', 'HelloMusicApp')
-    
-    # Ensure the template directory exists
-    os.makedirs(template_dir, exist_ok=True)
-    
-    # Create template name
-    template_name = f'sheet_editor.html'  # Using a single template instead of multiple files
+    # if not user_permission.role :
+    #     messages.error(request, "You don't have permission to edit this sheet")
+    #     return redirect('home')
     
     context = {
         'sheet': sheet,
         'sheet_id': sheet.ID,
         'sheet_title': sheet_title,
+        'user_role' : current_user.role,
     }
     
-    return render(request, f'HelloMusicApp/{template_name}', context)
+    return render(request, 'HelloMusicApp/sheet_editor.html', context)
 
 @require_http_methods(["POST"])
 def save_sheet(request, sheet_id):
