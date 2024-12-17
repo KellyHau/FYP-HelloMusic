@@ -1,0 +1,79 @@
+[
+    {
+        "symbol": "C",
+        "name": "C Major",
+        "notes": [
+            "C4",
+            "E4",
+            "G4"
+        ],
+        "duration": 4.0,
+        "type": "triad"
+    },
+    {
+        "symbol": "Dm",
+        "name": "D Minor",
+        "notes": [
+            "D4",
+            "F4",
+            "A4"
+        ],
+        "duration": 4.0,
+        "type": "triad"
+    },
+    {
+        "symbol": "Em",
+        "name": "E Minor",
+        "notes": [
+            "E4",
+            "G4",
+            "B4"
+        ],
+        "duration": 4.0,
+        "type": "triad"
+    },
+    {
+        "symbol": "F",
+        "name": "F Major",
+        "notes": [
+            "F4",
+            "A4",
+            "C5"
+        ],
+        "duration": 4.0,
+        "type": "triad"
+    },
+    {
+        "symbol": "G",
+        "name": "G Major",
+        "notes": [
+            "G4",
+            "B4",
+            "D5"
+        ],
+        "duration": 4.0,
+        "type": "triad"
+    },
+    {
+        "symbol": "Am",
+        "name": "A Minor",
+        "notes": [
+            "A3",
+            "C4",
+            "E4"
+        ],
+        "duration": 4.0,
+        "type": "triad"
+    },
+    {
+        "symbol": "Bdim",
+        "name": "B Diminished",
+        "notes": [
+            "B3",
+            "D4",
+            "F4"
+        ],
+        "duration": 4.0,
+        "type": "triad"
+    }
+]

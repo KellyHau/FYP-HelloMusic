@@ -6,6 +6,9 @@ let measureWidths = [];
 let currentMeasureIndex = 0;
 let selectedNote = null;
 let selectedNoteSymbol = null;
+let selectedChord = null;
+let selectedChordDuration = null;
+let selectedChordSymbol = null;
 let synth = null;
 let isPlaying = false;
 let audioInitialized = false;
@@ -16,6 +19,7 @@ let isLyricsMode = false;
 let selectedLyrics = null;
 let lyrics = [];
 let previewNote = null;  
+let chordData=null;
 
 
 // Duration mappings
@@ -42,7 +46,6 @@ const NOTE_FREQUENCIES = {
   a: 440.0,
   b: 493.88,
 };
-
 
 
 // History management
@@ -367,7 +370,7 @@ function initializeStaves() {
     // Get the container width
     const containerWidth = document.querySelector('.staff-scroll-container').clientWidth;
     const minMeasureWidth = MEASURE_MIN_WIDTH; // 300 from your constants
-    
+
     // Reset measure widths array
     measureWidths = [];
     
@@ -874,6 +877,29 @@ function createChord(duration, lineIndex, clef,measure) {
     });
 }
 
+function createNewChord(duration,selectedChord,clef) {
+    const chordInfo = chordData.find(chord => chord.symbol === selectedChord);
+  
+    if (!chordInfo) {
+        console.error("Chord not found:", selectedChord);
+        return null; 
+    }
+
+    const chordNotes = chordInfo.notes.map(note => {
+        const noteLetter = note[0].toLowerCase(); // Convert letter to lowercase
+        const octave = note.slice(1); // Extract the octave number
+        return `${noteLetter}/${octave}`; // Combine in VexFlow format
+    });
+  
+  
+      return new Vex.Flow.StaveNote({
+          keys: chordNotes,
+          duration: duration,
+          auto_stem: true,
+          clef: clef
+      });
+  }
+
 
 // // First, add a helper function to validate note placement
 function canNoteFitTimeSignature(duration) {
@@ -978,6 +1004,78 @@ function addChord(duration, y, measureIndex, notePosition) {
         }
         triggerAutoSave();
 }
+}
+
+function addNewChord(duration,selectedChord, y, measureIndex) {
+    // First check if the note duration is valid for the time signature
+    if (!canNoteFitTimeSignature(duration)) {
+        alert(`This note (${DURATIONS[duration].beats} beats) exceeds the maximum beats allowed per measure (${getTimeSignature().num} beats).`);
+        return false;
+    }
+
+  const rowHeight = 210;
+  const rowIndex = Math.floor(y / rowHeight);
+  const staffTop = 100 + (rowHeight * rowIndex);
+  const staffLineSpacing = 5;
+  const relativeY = y - staffTop;
+  const lineIndex = Math.round(relativeY / staffLineSpacing);
+  
+  if (lineIndex >= -2 && lineIndex <= 10) {
+      const clef = document.getElementById('clef-select').value;
+      const chord = createNewChord(duration, selectedChord,clef);   
+     
+      if (chord) {
+          const { num, den } = getTimeSignature();
+          const maxBeatsPerMeasure = num;
+          
+          // Calculate current beats in the measure
+          const currentBeats = getCurrentBeats(measureIndex);
+          const newNoteBeats = DURATIONS[duration]?.beats || 0;
+          
+          // Ensure measures array exists up to this index
+          while (measures.length <= measureIndex) {
+              measures.push([]);
+          }
+
+          // Check if note fits in current measure
+          if (currentBeats + newNoteBeats <= maxBeatsPerMeasure) {
+              measures[measureIndex].push(chord);
+          } else {
+              // Look for the next measure that has space
+              let nextMeasureIndex = measureIndex + 1;
+              while (measures.length <= nextMeasureIndex) {
+                  measures.push([]);
+              }
+              
+               // Add note to the next empty or partially filled measure
+                let placed = false;
+                while (!placed && nextMeasureIndex < measures.length + 1) {
+                    const nextMeasureBeats = getCurrentBeats(nextMeasureIndex);
+                    if (nextMeasureBeats + newNoteBeats <= maxBeatsPerMeasure) {
+                        // Ensure the measure exists
+                        while (measures.length <= nextMeasureIndex) {
+                            measures.push([]);
+                        }
+                        measures[nextMeasureIndex].push(chord);
+                        placed = true;
+                    } else {
+                        nextMeasureIndex++;
+                    }
+                }
+                
+                if (!placed) {
+                    // Create new measure if needed
+                    measures.push([chord]);
+                }
+          }
+          
+          history.pushState();
+          initializeStaves();
+          return true;
+      }
+      
+  }
+return false;
 }
 
 
@@ -1440,7 +1538,110 @@ function deleteLyrics(lyricsId) {
     .catch(error => console.error('Error deleting lyrics:', error));
 }
 
+async function fetchChordData() {
+    // Fetch chord JSON data from server
+    const response = await fetch("/static/HelloMusicApp/chords.json");
+    const chordData = await response.json();
+    return chordData;
+}
+
+
+// Chord append into div
+(async () => {
+    chordData = await fetchChordData();
+    const paletteContainer = document.querySelector(".chord-palette");
+    chordData.forEach(chord => {
+        chord_duration = getDurationForBeats(chord.duration);
+
+        const chordElement = document.createElement("div");
+        chordElement.className = "draggable-chord note"; 
+        chordElement.setAttribute("data-duration", `${chord_duration}`); 
+        chordElement.setAttribute("data-symbol", `${chord.symbol}`); 
+        chordElement.setAttribute("title", `${chord.name}`); 
+        chordElement.textContent = `${chord.symbol}`;
+
+        // Append to chord-palette container
+        paletteContainer.appendChild(chordElement);
+    });
+
+    document.querySelectorAll('.draggable-chord').forEach(chord => {
+        chord.addEventListener('click', (e) => {
+            const duration = chord.dataset.duration;
+    
+            // Check if note duration is valid for time signature
+            if (!canNoteFitTimeSignature(duration)) {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                const { num, den } = getTimeSignature();
+                const noteBeats = DURATIONS[duration]?.beats || 0;
+                alert(`This note duration (${noteBeats} beats) exceeds the maximum beats allowed per measure (${num} beats) in ${num}/${den} time signature.`);
+                return;
+            }
+    
+            if(selectedNoteSymbol){
+                selectedNoteSymbol.classList.remove('selected-note');
+                selectedNote = null;
+            }
+            
+            if(selectedChordSymbol){
+                selectedChordSymbol.classList.remove('selected-chord'); 
+                selectedChordDuration = null;
+            }
+    
+            // Set the clicked note as the selected note
+            selectedChordSymbol = chord;
+                
+            // Add the "selected-note" class to the currently clicked note
+            selectedChordSymbol.classList.add('selected-chord');
+            
+            // Store the selected note's duration
+            selectedChordDuration = duration;
+            selectedChord = chord.dataset.symbol;
+           
+        });
+    });
+
+})();
+
+
 // Event Listeners
+
+document.querySelectorAll('.draggable-note').forEach(note => {
+    note.addEventListener('click', (e) => {
+        const duration = note.dataset.duration;
+
+        // Check if note duration is valid for time signature
+        if (!canNoteFitTimeSignature(duration)) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            const { num, den } = getTimeSignature();
+            const noteBeats = DURATIONS[duration]?.beats || 0;
+            alert(`This note duration (${noteBeats} beats) exceeds the maximum beats allowed per measure (${num} beats) in ${num}/${den} time signature.`);
+            return;
+        }
+        if(selectedNoteSymbol){
+            selectedNoteSymbol.classList.remove('selected-note');
+            selectedNote = null;
+        }
+        
+        if(selectedChordSymbol){
+            selectedChordSymbol.classList.remove('selected-chord'); 
+            selectedChordDuration = null;
+        }
+
+        // Set the clicked note as the selected note
+        selectedNoteSymbol = note;
+            
+        // Add the "selected-note" class to the currently clicked note
+        selectedNoteSymbol.classList.add('selected-note');
+        
+        // Store the selected note's duration
+        selectedNote = duration;
+       
+    });
+});
 
 document.getElementById('clef-select').addEventListener('change', function() {
     const confirmation = confirm("Sure to change clef? All the notes will be clear and cannot be undo.");
@@ -1463,6 +1664,36 @@ document.getElementById('time-select').addEventListener('change', function() {
         triggerAutoSave();
         document.getElementById("error-message").textContent = "";
     }
+});
+
+document.getElementById('duration-select').addEventListener('change', function() {
+
+    const chordElements = document.querySelectorAll(".draggable-chord");
+    let newDuration = Number(document.getElementById('duration-select').value);
+
+    chordElements.forEach((element, index) => {
+        const chord = chordData[index]; 
+        chord.duration = newDuration; 
+
+        const chord_duration = getDurationForBeats(newDuration); 
+        console.log(chord_duration);
+        element.setAttribute("data-duration", chord_duration); 
+    });
+
+    const selectedChordElement = document.querySelector(".draggable-chord.selected-chord");
+    if (selectedChordElement) {
+        // Update the attribute
+        const chord_duration = getDurationForBeats(newDuration);
+        selectedChordElement.setAttribute("data-duration", chord_duration);
+        selectedChordDuration = chord_duration;
+
+        // Update the corresponding chordData (find the correct chord)
+        const index = Array.from(chordElements).indexOf(selectedChordElement);
+        if (index !== -1) {
+            chordData[index].duration = newDuration;
+        }
+    }
+    
 });
 
 document.getElementById("clear-notes").addEventListener("click", () => {
@@ -1546,37 +1777,6 @@ document.addEventListener("keydown", (e) => {
   }
 });
 
-document.querySelectorAll('.draggable-note').forEach(note => {
-    note.addEventListener('click', (e) => {
-        const duration = note.dataset.duration;
-
-        // Check if note duration is valid for time signature
-        if (!canNoteFitTimeSignature(duration)) {
-            e.preventDefault();
-            e.stopPropagation();
-            
-            const { num, den } = getTimeSignature();
-            const noteBeats = DURATIONS[duration]?.beats || 0;
-            alert(`This note duration (${noteBeats} beats) exceeds the maximum beats allowed per measure (${num} beats) in ${num}/${den} time signature.`);
-            return;
-        }
-
-        if(selectedNoteSymbol){
-            selectedNoteSymbol.classList.remove('selected-note'); 
-        }
-
-        // Set the clicked note as the selected note
-        selectedNoteSymbol = note;
-            
-        // Add the "selected-note" class to the currently clicked note
-        selectedNoteSymbol.classList.add('selected-note');
-        
-        // Store the selected note's duration
-        selectedNote = duration;
-       
-    });
-});
-
 
 document.querySelector('.staff-scroll-container').addEventListener('click', e => {
     // Check if click was on or inside a lyrics element
@@ -1618,22 +1818,17 @@ document.querySelector('.staff-scroll-container').addEventListener('click', e =>
         if (added) {
             triggerAutoSave();
         }
+    }else if (selectedChord) {
+        const added = addNewChord(selectedChordDuration, selectedChord, y, measureIndex);
+        if (added) {
+            triggerAutoSave();
+        }
     } else {
         console.log('No mode selected');
-        // Optional: Show message to user
+    
         alert("Please select a note from the palette first or enable lyrics mode.");
     }
 });
-
-// document.querySelectorAll(".draggable-note").forEach((note) => {
-//   note.addEventListener("dragstart", (e) => {
-//     e.dataTransfer.setData("text/plain", note.dataset.duration);
-//   });
-// });
-
-// document.querySelector(".staff-scroll-container").addEventListener("dragover", (e) => {
-//     e.preventDefault();
-// });
 
 // Add scroll event listener to update highlight positions
 document.querySelector('.staff-scroll-container').addEventListener('scroll', function(e) {
@@ -1706,6 +1901,9 @@ document.addEventListener('DOMContentLoaded', function() {
         if (sheetData.clefType) {
             document.getElementById('clef-select').value = sheetData.clefType;
         }
+
+        document.getElementById('duration-select').value = chordData[0].duration;
+        
 
         initializeStaves();
         initializePreviewSystem();

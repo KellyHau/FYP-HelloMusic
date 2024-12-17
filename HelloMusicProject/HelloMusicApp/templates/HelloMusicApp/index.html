@@ -12,7 +12,7 @@
     {% for sheet in music_sheets %}
     
     <div class="col-sm-6 col-md-4 col-lg-3 music-sheet-item" sheet-id="{{ sheet.ID }}">
-        <a href="{% url 'edit_sheet' sheet_title=sheet.title %}" style="text-decoration: none;">
+        <a class="sheet-url" href="{% url 'edit_sheet' sheet_title=sheet.title %}" style="text-decoration: none;">
         <div class="music-sheet-card"></div>
             <div class="text-white sheet-title">{{ sheet.title }}</div>
         </a>

@@ -105,9 +105,14 @@ function saveTitle() {
         },
         success: function (response) {
             $('#editTitleModal').modal('hide');
-            if (response.status) {
-                $(`.music-sheet-item[sheet-id=${currentSheetId}]`).find('.sheet-title').text(newTitle);
-                showAlert('success', `${response.mes}`);
+            if (response.status) { 
+                const sheetItem = $(`.music-sheet-item[sheet-id=${currentSheetId}]`);
+              
+                sheetItem.find('.sheet-title').text(newTitle);
+        
+                sheetItem.find('.sheet-url').attr('href', `/sheet/${encodeURIComponent(newTitle)}/`);
+        
+                triggerAction('success', `${response.mes}`);
             } else {
                 showAlert('warning', `Failed to edit music sheet : ${response.mes}`);
             }

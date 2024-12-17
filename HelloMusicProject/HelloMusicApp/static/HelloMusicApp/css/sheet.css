@@ -77,7 +77,7 @@ select {
 
 .note-palette-label {
     font-weight: bold;
-    padding: 8px 12px;
+    padding: 8px 17px;
     letter-spacing: 0.05em;
 }
 
@@ -87,7 +87,19 @@ select {
     align-items: center;
 }
 
-.draggable-note {
+.chord-palette-label {
+    font-weight: bold;
+    padding: 8px 12px;
+    letter-spacing: 0.05em;
+}
+
+.chord-palette {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.note {
     font-size: 24px;
     padding: 5px 10px;
     border: 1px solid #ddd;
@@ -97,14 +109,15 @@ select {
     text-align: center;
 }
 
-.draggable-note:active {
+.note:active {
     cursor: grabbing;
 }
 
-.draggable-note.active {
+.note.active {
     background-color: #007bff !important;
     color: white !important;
 }
+
 
 .playback-controls {
     margin-top: 10px;
@@ -168,6 +181,11 @@ button {
 }
 
 .selected-note {
+    background-color: #ccc; /* Grey background for selected note */
+    color: #fff; /* White text color for better contrast */
+}
+
+.selected-chord {
     background-color: #ccc; /* Grey background for selected note */
     color: #fff; /* White text color for better contrast */
 }

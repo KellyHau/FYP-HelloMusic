@@ -1,7 +1,5 @@
 import json
-from django import template
 from django.shortcuts import render, redirect
-from django.conf import settings
 from django.shortcuts import get_object_or_404
 from django.contrib import messages
 from django.http import JsonResponse
@@ -19,12 +17,23 @@ from django.utils import timezone
 from datetime import timedelta
 from django.contrib.auth.models import User
 from django.conf import settings
+import os
 from django.views.decorators.http import require_http_methods
-from django.db import IntegrityError, transaction
+from django.db import transaction
 from django.db.models import Case, When, Value, IntegerField
 from django.db.models import Q
-import os
-from django.template import loader, TemplateDoesNotExist
+from music21 import chord, midi, stream
+
+C_MAJOR_KEY_LIB= {
+    "C"  :{ "name": "C Major", "notes": ["C4", "E4", "G4"], "type": "triad" },
+    "Dm" :{ "name": "D Minor", "notes": ["D4", "F4", "A4"], "type": "triad" },
+    "Em" :{ "name": "E Minor", "notes": ["E4", "G4", "B4"], "type": "triad" },
+    "F"  :{ "name": "F Major", "notes": ["F4", "A4", "C5"], "type": "triad" },
+    "G"  :{ "name": "G Major", "notes": ["G4", "B4", "D5"], "type": "triad" },
+    "Am" :{  "name": "A Minor", "notes": ["A3", "C4", "E4"], "type": "triad" },
+    "Bdim" :{ "name": "B Diminished", "notes": ["B3", "D4", "F4"], "type": "triad" },
+}
+
 
 
 def register(request):
@@ -754,3 +763,38 @@ def delete_lyrics(request, sheet_id, lyrics_id):
             'status': 'error',
             'message': str(e)
         }, status=400)
+
+def generate_chord(chord_symbol):
+   # Retrieve chord data from the C_MAJOR_KEY_LIB
+    if chord_symbol in C_MAJOR_KEY_LIB:
+        chord_data = C_MAJOR_KEY_LIB[chord_symbol]
+        music21_chord = chord.Chord(chord_data["notes"])
+        music21_chord.duration.quarterLength = 4  # Duration of a whole note
+        
+        # Construct the output dictionary
+        output = {
+            "symbol": chord_symbol,
+            "name" : chord_data["name"],
+            "notes": [n.nameWithOctave for n in music21_chord.pitches],
+            "duration": music21_chord.duration.quarterLength,
+            "type": chord_data["type"]
+        }
+        return output
+    else:
+        raise ValueError(f"Chord '{chord_symbol}' not found in the library")
+    
+
+# Generate and export multiple chords
+exported_chords = []
+for chord_symbol in C_MAJOR_KEY_LIB.keys():
+    exported_chords.append(generate_chord(chord_symbol))
+
+output_path = os.path.join(settings.BASE_DIR, "HelloMusicApp" ,"static", "HelloMusicApp", "chords.json")
+
+# Ensure the static directory exists
+os.makedirs(os.path.dirname(output_path), exist_ok=True)
+
+ # Export chord as JSON
+import json
+with open(output_path, "w") as file:
+    json.dump(exported_chords, file, indent=4)
