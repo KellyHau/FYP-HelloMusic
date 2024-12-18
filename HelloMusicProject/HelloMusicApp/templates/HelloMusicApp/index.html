@@ -5,19 +5,74 @@
 {% block title %}Home - Hello Music{% endblock %}
 
 {% block content %}
+
+
+<div>
+    <!-- Filter Form -->
+    <form id="filter-form" class="bg-light p-2 rounded shadow-sm">
+        <div class="row align-items-center">
+            <!-- Key Signature -->
+            <div class="col-md-4 mb-3">
+                <label for="key-signature" class="form-label">Key Signature</label>
+                <select id="key-signature" name="key_signature" class="form-select">
+                    <option value="" selected>All</option>
+                    <option value="C">C Major</option>
+                    <option value="G">G Major</option>
+                    <option value="D">D Major</option>
+                    <option value="A">A Major</option>
+                    <option value="E">E Major</option>
+                    <option value="F">F Major</option>
+                    <option value="Bb">B♭ Major</option>
+                    <option value="Eb">E♭ Major</option>
+                    <!-- Add more key signature options -->
+                </select>
+            </div>
+
+            <!-- Clef -->
+            <div class="col-md-4 mb-3">
+                <label for="clef" class="form-label">Clef</label>
+                <select id="clef" name="clef" class="form-select">
+                    <option value="" selected>All</option>
+                    <option value="treble">Treble</option>
+                    <option value="bass">Bass</option>
+                    <!-- Add more clef options -->
+                </select>
+            </div>
+
+            <!-- Time Signature -->
+            <div class="col-md-4 mb-3">
+                <label for="time-signature" class="form-label">Time Signature</label>
+                <select id="time-signature" name="time_signature" class="form-select">
+                    <option value="" selected>All</option>
+                    <option value="4/4">4/4</option>
+                    <option value="3/4">3/4</option>
+                    <option value="2/4">2/4</option>
+                    <option value="6/8">6/8</option>
+                    <!-- Add more time signature options -->
+                </select>
+            </div>
+        </div>
+    </form>
+
+    <!-- Music Sheets List -->
+    <div id="music-sheets-filter" class="row mt-4">
+        <!-- Filtered results will be loaded here -->
+    </div>
+</div>
+
 <!-- Music Sheets Grid -->
-<div class="row">
+<div id="music-sheets-list" class="row">
     {% if music_sheets %}
 
     {% for sheet in music_sheets %}
-    
+
     <div class="col-sm-6 col-md-4 col-lg-3 music-sheet-item" sheet-id="{{ sheet.ID }}">
         <a class="sheet-url" href="{% url 'edit_sheet' sheet_title=sheet.title %}" style="text-decoration: none;">
-        <div class="music-sheet-card"></div>
+            <div class="music-sheet-card"></div>
             <div class="text-white sheet-title">{{ sheet.title }}</div>
         </a>
     </div>
-    
+
     {% endfor %}
 
     {% else %}
@@ -38,5 +93,42 @@
 {% block script_content %}
 
 <script src="{% static 'HelloMusicApp/js/sheetOption.js' %}"></script>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const filterForm = document.getElementById("filter-form");
+        const musicSheetsFilter = document.getElementById("music-sheets-filter");
+        const musicSheetsList = document.getElementById("music-sheets-list");
+
+        // Add event listeners to dropdowns
+        filterForm.addEventListener("change", function () {
+
+
+            const keySignature = document.getElementById("key-signature").value;
+            const clef = document.getElementById("clef").value;
+            const timeSignature = document.getElementById("time-signature").value;
+
+            if (keySignature === '' && clef === '' && timeSignature === '') {
+                musicSheetsFilter.innerHTML = "";
+                musicSheetsList.style.display = 'flex';
+
+            } else {
+                musicSheetsList.style.display = 'none';
+
+                fetch(
+                        `/filter?key_signature=${keySignature}&clef=${clef}&time_signature=${timeSignature}`
+                        )
+                    .then((response) => response.text())
+                    .then((data) => {
+                        musicSheetsFilter.innerHTML = data;
+                    })
+                    .catch((error) => {
+                        console.error("Error fetching filtered results:", error);
+                    });
+            }
+
+        });
+    });
+</script>
 
 {% endblock %}

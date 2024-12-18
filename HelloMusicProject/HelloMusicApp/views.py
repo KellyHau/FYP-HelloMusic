@@ -235,6 +235,24 @@ def user_music_sheets_list(request):
  return MusicSheet.objects.filter(users=request.user)
 
 
+def edit_sheet(request, sheet_title):
+    sheet = get_object_or_404(MusicSheet, title=sheet_title)
+    current_user = UserMusicSheet.objects.filter(user=request.user,sheet=sheet.ID).first()
+    
+    # if not user_permission.role :
+    #     messages.error(request, "You don't have permission to edit this sheet")
+    #     return redirect('home')
+    
+    context = {
+        'sheet': sheet,
+        'sheet_id': sheet.ID,
+        'sheet_title': sheet_title,
+        'user_role' : current_user.role,
+    }
+    
+    return render(request, 'HelloMusicApp/sheet_editor.html', context)
+
+
 @require_POST
 def delete_sheet(request, sheet_id): 
 
@@ -330,7 +348,25 @@ def share_sheet_to_user(request, sheet_id):
                 "current_role": current_user.role ,
             }
         return JsonResponse(data)
-        
+    
+# Filter sheet
+def filter_music_sheets(request):
+    key_signature = request.GET.get('key_signature', '')
+    clef = request.GET.get('clef', '')
+    time_signature = request.GET.get('time_signature', '')
+
+    music_sheets = MusicSheet.objects.all()
+
+    if key_signature:
+        music_sheets = music_sheets.filter(key_signature=key_signature)
+    if clef:
+        music_sheets = music_sheets.filter(clef_type=clef)
+    if time_signature:
+        music_sheets = music_sheets.filter(time_signature=time_signature)
+
+    # Render partial HTML for the music sheet list
+    return render(request, 'HelloMusicApp/partials/music_sheet_filter.html', {'music_sheets': music_sheets})
+
 
 # Music sheet folder management
 @require_POST
@@ -571,23 +607,6 @@ def search_sheet_folder(request):
     return JsonResponse({'sheets': sheets, 'folders': folders})
 
 # Music Notation Management
-
-def edit_sheet(request, sheet_title):
-    sheet = get_object_or_404(MusicSheet, title=sheet_title)
-    current_user = UserMusicSheet.objects.filter(user=request.user,sheet=sheet.ID).first()
-    
-    # if not user_permission.role :
-    #     messages.error(request, "You don't have permission to edit this sheet")
-    #     return redirect('home')
-    
-    context = {
-        'sheet': sheet,
-        'sheet_id': sheet.ID,
-        'sheet_title': sheet_title,
-        'user_role' : current_user.role,
-    }
-    
-    return render(request, 'HelloMusicApp/sheet_editor.html', context)
 
 @require_http_methods(["POST"])
 def save_sheet(request, sheet_id):
