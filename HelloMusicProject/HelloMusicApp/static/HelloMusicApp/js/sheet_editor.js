@@ -197,19 +197,23 @@ const history = {
                 clef: state.clef  // Use the stored clef type
             });
             
+            // Add accidental if present
             if (noteData.accidental) {
-                note.addAccidental(0, new Vex.Flow.Accidental(noteData.accidental));
+                const accidental = new Vex.Flow.Accidental(noteData.accidental);
+                note.addModifier(accidental, 0);
             }
             
+            // Add articulation if present
             if (noteData.articulation) {
-                note.addArticulation(0, new Vex.Flow.Articulation(noteData.articulation));
+                const articulation = new Vex.Flow.Articulation(noteData.articulation);
+                note.addModifier(articulation, 0);
             }
             
             note.tied = noteData.tied;
             note.tieStart = noteData.tieStart;
             
             return note;
-        })
+        }).filter(note => note !== null) // Remove any failed notes
     );
     
     initializeStaves();
@@ -851,6 +855,25 @@ function createNote(duration, lineIndex, clef) {
       clef: clef  // Explicitly set the clef
   });
   
+  // Add accidental if one is selected
+  if (selectedAccidental) {
+        let accidental;
+
+        switch (selectedAccidental) {
+                    case 'sharp':
+                        accidental = new Vex.Flow.Accidental("#");
+                        break;
+                    case 'flat':
+                        accidental = new Vex.Flow.Accidental("b");
+                        break;
+                    case 'natural':
+                        accidental = new Vex.Flow.Accidental("n");
+                        break;
+                }
+                if (accidental) {
+                    note.addModifier(accidental, 0);
+                }
+  }
   return note;
 }
 
@@ -923,12 +946,12 @@ function addNote(duration, x, y, measureIndex) {
   const staffLineSpacing = 5;
   const relativeY = y - staffTop;
   const lineIndex = Math.round(relativeY / staffLineSpacing);
-  
+
   if (lineIndex >= -2 && lineIndex <= 10) {
       const clef = document.getElementById('clef-select').value;
       const note = createNote(duration, lineIndex, clef);   
      
-      if (note) {
+      if (note) {  
           const { num, den } = getTimeSignature();
           const maxBeatsPerMeasure = num;
           
@@ -1927,6 +1950,7 @@ document.addEventListener('DOMContentLoaded', function() {
                   
                   // Add notes
                   measureData.notes.forEach(noteData => {
+
                     const notesArray = noteData.pitch.split(',');
                     
                       const note = new Vex.Flow.StaveNote({       
@@ -1936,12 +1960,18 @@ document.addEventListener('DOMContentLoaded', function() {
                           clef: sheetData.clefType
                       });
                       
-                      if (noteData.accidental) {
-                          note.addAccidental(0, new Vex.Flow.Accidental(noteData.accidental));
-                      }
-                      if (noteData.articulation) {
-                          note.addArticulation(0, new Vex.Flow.Articulation(noteData.articulation));
-                      }
+                      // Add accidental if present
+                        if (noteData.accidental) {
+                            const accidental = new Vex.Flow.Accidental(noteData.accidental);
+                            note.addModifier(accidental, 0);
+                        }
+
+                      // Add articulation if present
+                        if (noteData.articulation) {
+                            const articulation = new Vex.Flow.Articulation(noteData.articulation);
+                            note.addModifier(articulation, 0);
+                        }
+
                       if (noteData.tie === 'start') {
                           note.tieStart = true;
                       } else if (noteData.tie === 'end') {
@@ -2032,3 +2062,23 @@ function setStaffContainerInteraction(isViewer) {
   }
   
 
+// Add global variable to track selected accidental
+let selectedAccidental = null;
+
+// Add event listeners for accidental buttons
+document.querySelectorAll('.accidental-btn').forEach(btn => {
+    btn.addEventListener('click', function() {        
+        // Remove active class from all accidental buttons
+        document.querySelectorAll('.accidental-btn').forEach(b => 
+            b.classList.remove('active'));
+            
+        // Toggle selection
+        if (selectedAccidental === this.dataset.accidental) {
+            selectedAccidental = null;
+            this.classList.remove('active');
+        } else {
+            selectedAccidental = this.dataset.accidental;
+            this.classList.add('active');
+        }
+    });
+});

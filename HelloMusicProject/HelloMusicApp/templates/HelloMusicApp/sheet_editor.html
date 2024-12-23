@@ -22,8 +22,8 @@
       </div>
       <div class="top-menu col-sm-9">
         <div class="row">
-          <div class="note-palette col-md-8">
-            <label for="note-palette" class="note-palette-label">Note Palette</label>
+          <div class="note-palette col-md-6">
+            <label for="note-palette" class="note-palette-label">Note Palette:</label>
             <div class="draggable-note note" draggable="true" data-duration="w" title="Whole Note">&#119133;</div>
             <div class="draggable-note note" draggable="true" data-duration="h" title="Half Note">&#119134;</div>
             <div class="draggable-note note" draggable="true" data-duration="q" title="Quarter Note">&#119135;</div>
@@ -35,8 +35,17 @@
             </div>
           </div>
 
-          <div class="chord-palette col-md-6 mt-2 mb-2 d-flex flex-wrap">
-            <label for="chord-palette" class="chord-palette-label">Chord Palette</label>
+          <div class="note-palette col-md-4">
+            <label for="note-palette" class="note-palette-label">Accidental Palette:</label>
+            <div class="accidental-controls">
+              <button class="accidental-btn" data-accidental="sharp" title="Sharp">♯</button>
+              <button class="accidental-btn" data-accidental="flat" title="Flat">♭</button>
+              <button class="accidental-btn" data-accidental="natural" title="Natural">♮</button>
+            </div>
+          </div>
+
+          <div class="chord-palette col-md-7 mt-2 mb-2 d-flex flex-wrap">
+            <label for="chord-palette" class="chord-palette-label">Chord Palette：</label>
 
           </div>
 
@@ -96,13 +105,9 @@
             </select>
           </div>
 
-          {% comment %} <div class="accidental-controls">
-            <button class="accidental-btn" data-accidental="sharp" title="Sharp">♯</button>
-            <button class="accidental-btn" data-accidental="flat" title="Flat">♭</button>
-            <button class="accidental-btn" data-accidental="natural" title="Natural">♮</button>
-          </div>
+          
 
-          <div class="articulation-controls">
+          {% comment %} <div class="articulation-controls">
             <button class="articulation-btn" data-articulation="staccato" title="Staccato">·</button>
             <button class="articulation-btn" data-articulation="legato" title="Legato">‿</button>
             <button class="articulation-btn" data-articulation="accent" title="Accent">></button>
