@@ -28,6 +28,22 @@ class MusicSheetFolderForm(forms.ModelForm):
     class Meta:
         model = MusicSheetFolder
         fields = ['name']
+    
+    def __init__(self, *args, **kwargs):
+        self.user = kwargs.pop('user', None)
+        super().__init__(*args, **kwargs)
+        
+    def clean_name(self):
+        name = self.cleaned_data['name']
+        original_name = name
+        counter = 1
+
+        # Check for duplicates and append a number if necessary
+        while MusicSheetFolder.objects.filter(users=self.user, name=name).exists():
+            title = f"{original_name} ({counter})"
+            counter += 1
+
+        return title
 
 class AddSheetsToFolderForm(forms.Form):
     selected_sheets = forms.ModelMultipleChoiceField(
@@ -46,8 +62,7 @@ class AddSheetsToFolderForm(forms.Form):
         super().__init__(*args, **kwargs)
         if user:  # Filter queryset by user 
             owner_sheets = UserMusicSheet.objects.filter(user=user, role='owner').values_list('sheet', flat=True)
-            self.fields['selected_sheets'].queryset = MusicSheet.objects.filter(ID__in=owner_sheets,  folder__isnull=True)
-            
+            self.fields['selected_sheets'].queryset = MusicSheet.objects.filter(ID__in=owner_sheets,  folder__isnull=True)        
 
 
 class RegisterForm(forms.ModelForm):

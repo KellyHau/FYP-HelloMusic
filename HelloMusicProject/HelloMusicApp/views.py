@@ -6,7 +6,7 @@ from django.http import JsonResponse
 from django.views.decorators.http import require_POST
 from .models import *
 from .forms import *
-from django.contrib.auth import authenticate, login as auth_login  # Rename the login method to avoid conflict
+from django.contrib.auth import authenticate, login as auth_login 
 from django.contrib import messages
 from django.contrib.auth import logout
 from django.utils.timezone import localtime
@@ -22,7 +22,7 @@ from django.views.decorators.http import require_http_methods
 from django.db import transaction
 from django.db.models import Case, When, Value, IntegerField
 from django.db.models import Q
-from music21 import chord, midi, stream
+from music21 import chord
 
 C_MAJOR_KEY_LIB= {
     "C"  :{ "name": "C Major", "notes": ["C4", "E4", "G4"], "type": "triad" },
@@ -35,7 +35,7 @@ C_MAJOR_KEY_LIB= {
 }
 
 
-
+# User Management --------------------------------------------------------------------------------
 def register(request):
     
     if request.method == 'POST':
@@ -170,24 +170,6 @@ def logout_user(request):
     messages.success(request, 'You have successfully logged out.')
     return redirect('login')
 
-def home(request):   
-   
-    addSheetform = MusicSheetForm(initial={'title': 'Untitled Sheet'})
-    addFolderform = MusicSheetFolderForm(initial={'name': 'Untitled Folder'})
-    music_sheets_list = user_music_sheets_list(request)
-    recent_folder_list =  UserMusicSheetFolder.objects.filter(user=request.user).order_by('-last_accessed')[:4].select_related('folder')
-    profile, created = Profile.objects.get_or_create(user=request.user)
-    
-    context = {
-        'music_sheets': music_sheets_list,
-        'recent_sheet_folder': recent_folder_list,
-        'sheetform': addSheetform,
-        'folderform': addFolderform,
-        'profile': profile
-    }
-    
-    return render(request,"HelloMusicApp/index.html",context)
-
 def profile_view(request):
     # Get or create profile
     profile, created = Profile.objects.get_or_create(user=request.user)
@@ -211,7 +193,26 @@ def profile_view(request):
         'profile': profile
     })
 
-# Music sheet management
+
+def home(request):   
+   
+    addSheetform = MusicSheetForm(initial={'title': 'Untitled Sheet'})
+    addFolderform = MusicSheetFolderForm(initial={'name': 'Untitled Folder'})
+    music_sheets_list = user_music_sheets_list(request)
+    recent_folder_list =  UserMusicSheetFolder.objects.filter(user=request.user).order_by('-last_accessed')[:4].select_related('folder')
+    profile, created = Profile.objects.get_or_create(user=request.user)
+    
+    context = {
+        'music_sheets': music_sheets_list,
+        'recent_sheet_folder': recent_folder_list,
+        'sheetform': addSheetform,
+        'folderform': addFolderform,
+        'profile': profile
+    }
+    
+    return render(request,"HelloMusicApp/index.html",context)
+
+# Music sheet management -----------------------------------------------------------------------------------------------------------------------
 @require_POST
 def create_sheet(request):
     
@@ -238,16 +239,14 @@ def user_music_sheets_list(request):
 def edit_sheet(request, sheet_title):
     sheet = get_object_or_404(MusicSheet, title=sheet_title)
     current_user = UserMusicSheet.objects.filter(user=request.user,sheet=sheet.ID).first()
-    
-    # if not user_permission.role :
-    #     messages.error(request, "You don't have permission to edit this sheet")
-    #     return redirect('home')
+    chord_library = user_chord_library(request)
     
     context = {
         'sheet': sheet,
         'sheet_id': sheet.ID,
         'sheet_title': sheet_title,
         'user_role' : current_user.role,
+        'chord_library' : chord_library,
     }
     
     return render(request, 'HelloMusicApp/sheet_editor.html', context)
@@ -368,11 +367,11 @@ def filter_music_sheets(request):
     return render(request, 'HelloMusicApp/partials/music_sheet_filter.html', {'music_sheets': music_sheets})
 
 
-# Music sheet folder management
+# Music sheet folder management -----------------------------------------------------------------------------------------------------
 @require_POST
 def create_folder(request): #need to login before create
     
-    form = MusicSheetFolderForm(request.POST)
+    form = MusicSheetFolderForm(request.POST,user=request.user)
     
     if form.is_valid():
         music_sheet_folder = form.save() 
@@ -606,8 +605,81 @@ def search_sheet_folder(request):
     )
     return JsonResponse({'sheets': sheets, 'folders': folders})
 
-# Music Notation Management
+# Chord Management ------------------------------------------------------------------------------------------------------------------------------
+@require_POST
+def create_library(request):
+    name = request.POST.get('name', '').strip() 
 
+    # Validation: Ensure the name is not empty
+    if not name:
+        return JsonResponse({
+            'status': False,
+            'mes': 'Library name cannot be empty.'
+        })
+
+    existing_library = ChordLibrary.objects.filter(name=name).first()
+    
+
+    if existing_library:
+        counter = 1
+        new_name = f"{name} {counter}"
+      
+        while ChordLibrary.objects.filter(name=new_name).exists():
+            counter += 1
+            new_name = f"{name} {counter}"
+        name = new_name
+
+ 
+    ChordLibrary.objects.create(
+        name=name,
+        user=request.user,  # Assuming you're associating the library with the logged-in user
+    )
+
+    return JsonResponse({
+        'status': True,
+        'mes': 'Chord library created successfully!'
+    })
+
+
+def user_chord_library(request):
+    return ChordLibrary.objects.filter(user=request.user)
+
+@require_POST
+def rename_library(request, library_id):
+    
+    new_name = request.POST.get('name', '').strip()    
+    
+    # Validation: Ensure the name is not empty
+    if not new_name:
+        return JsonResponse({
+            'status': False,
+            'mes': 'Library name cannot be empty.'
+        })
+    
+    library = get_object_or_404(ChordLibrary, ID=library_id)    
+    
+    library.name = new_name
+    library.save()
+
+    return JsonResponse({'status': True, 'mes': 'Library rename successfully.'})
+
+
+@require_POST
+def delete_library(request, library_id): 
+
+    try:    
+    
+        library = get_object_or_404(ChordLibrary, ID=library_id)    
+        
+        library.delete()
+        
+        return JsonResponse({'status': True, 'mes': 'Library deleted successfully.'})
+    
+    except MusicSheetFolder.DoesNotExist:
+        return JsonResponse({'status': False, 'mes': 'Library not found'})
+
+
+# Music Notation Management -----------------------------------------------------------------------------------------------------
 @require_http_methods(["POST"])
 def save_sheet(request, sheet_id):
     try:

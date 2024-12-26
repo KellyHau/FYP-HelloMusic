@@ -1630,6 +1630,9 @@ async function fetchChordData() {
 
 // Event Listeners
 
+// Chord Library
+//open add sheet window
+
 document.querySelectorAll('.draggable-note').forEach(note => {
     note.addEventListener('click', (e) => {
         const duration = note.dataset.duration;
@@ -1886,6 +1889,7 @@ document.querySelectorAll('.articulation-btn').forEach(btn => {
         this.classList.add('active');
     });
 });
+
 
 // Add lyrics mode button click handler
 document.getElementById('lyrics-mode-btn').addEventListener('click', () => {

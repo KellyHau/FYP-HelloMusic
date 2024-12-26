@@ -4,25 +4,31 @@
 
 <head>
   <meta charset="UTF-8" />
+  <meta name="csrf-token" content="{{ csrf_token }}">
   <title>{{ sheet_title }}</title>
   <link rel="icon" href="{% static 'HelloMusicApp/images/favicon.ico' %}" type="image/x-icon" />
-  <link href="{% static 'HelloMusicApp/css/sheet.css' %}" rel="stylesheet" />
   <link href="{% static 'HelloMusicApp/css/bootstrap.min.css' %}" rel="stylesheet">
+  <link href="{% static 'HelloMusicApp/css/sheet.css' %}" rel="stylesheet" />
+
 </head>
 
 <body>
   <div id="sheet-editor" data-sheet-id="{{ sheet_id }}" data-sheet-title="{{ sheet_title }}"
     data-user-role="{{user_role}}">
 
-    <div class="row menu">
-      <div class="col-sm-2 logo">
+    <div class="row fill-flex px-4">
+      <!-- Logo -->
+      <div class="col-sm-3 logo">
         <a href="{% url 'home' %}">
           <img src="{% static 'HelloMusicApp/images/logo.png' %}" alt="Logo" class="img-fluid w-100" />
         </a>
       </div>
-      <div class="top-menu col-sm-9">
+
+      <!-- Top Menu -->
+      <div class="col-sm-7 top-menu">
         <div class="row">
-          <div class="note-palette col-md-6">
+          <!-- Note Palette -->
+          <div class="note-palette col-md-7 d-flex flex-wrap">
             <label for="note-palette" class="note-palette-label">Note Palette:</label>
             <div class="draggable-note note" draggable="true" data-duration="w" title="Whole Note">&#119133;</div>
             <div class="draggable-note note" draggable="true" data-duration="h" title="Half Note">&#119134;</div>
@@ -35,6 +41,7 @@
             </div>
           </div>
 
+          <!-- Accidental Palette -->
           <div class="note-palette col-md-4">
             <label for="note-palette" class="note-palette-label">Accidental Palette:</label>
             <div class="accidental-controls">
@@ -44,12 +51,13 @@
             </div>
           </div>
 
-          <div class="chord-palette col-md-7 mt-2 mb-2 d-flex flex-wrap">
-            <label for="chord-palette" class="chord-palette-label">Chord Palette：</label>
-
+          <!-- Chord Palette -->
+          <div class="chord-palette col-sm-8 mt-2 mb-2 d-flex flex-wrap">
+            <label for="chord-palette" class="chord-palette-label">Chord Palette:</label>
           </div>
 
-          <div class="control-group col-md-1 d-flex flex-column justify-content-center">
+          <!-- Duration Selector -->
+          <div class="control-group col-md-2 d-flex flex-column justify-content-center">
             <label for="duration-select">Duration:</label>
             <select id="duration-select" class="form-control text-center">
               <option value="4">4</option>
@@ -60,14 +68,41 @@
             </select>
           </div>
 
+          <!-- Playback Controls -->
           <div class="playback-controls text-center">
             <button class="btn btn-success mx-1" id="play">▶ Play</button>
             <button class="btn btn-danger mx-1" id="stop">■ Stop</button>
           </div>
         </div>
       </div>
-      
+
+      <!-- Chord Library Menu -->
+      <div class="col-sm-3 chord-library">
+        <div class="card">
+          <div class="card-header bg-secondary text-center fw-bold">
+            <span class="fw-bold text-center col">Chord Library</span>
+            <button id="addLibrary" class="btn btn-sm btn-success col-sm-2">New</button>
+          </div>
+          <div class="card-body p-3 library-list">
+            <ul class="list-group">
+              {% if chord_library %}
+
+              {% for library in chord_library %}
+
+              <li id="{{library.ID}}" class="list-group-item list-group-item-action" name="{{library.name}}">
+                {{library.name}}</li>
+
+              {% endfor %}
+
+              {% else %}
+              <p>No chord Library exist.</p>
+              {% endif %}
+            </ul>
+          </div>
+        </div>
+      </div>
     </div>
+
     <div class="container-fluid custom-container">
       <div class="row flex-fill justify-content-center px-4">
         <div class="col-auto me-3 controls" style="height: fit-content;">
@@ -105,7 +140,7 @@
             </select>
           </div>
 
-          
+
 
           {% comment %} <div class="articulation-controls">
             <button class="articulation-btn" data-articulation="staccato" title="Staccato">·</button>
@@ -149,9 +184,291 @@
         </div>
       </div>
     </div>
+
+    <div id="context-menu" class="custom-context-menu">
+      <a href="#edit" id="edit-option">Organize</a>
+      <a href="#rename" id="rename-option">Rename</a>
+      <a href="#delete" id="delete-option">Delete</a>
+    </div>
+
+    <!-- Add Chord library Modal -->
+    <div class="modal fade" id="addlibraryModal" tabindex="-1" aria-labelledby="addlibraryLabel" aria-hidden="true">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="addlibraryModal">New Chord Library</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body">
+            <div class="form-group">
+              <form>
+                <label for="libraryName">Name*</label>
+                <input type="text" id="libraryName" name="libraryName" class="form-control" value="Untitled library"
+                  required>
+              </form>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-success" onclick="createLibrary()">Save</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Delete Chord library model-->
+    <div class="modal fade" id="deletelibraryModal" tabindex="-1" aria-labelledby="deletelibraryLabel"
+      aria-hidden="true">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="deletelibraryModal">Confirm Deletion</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <p>
+              Are you sure you want to delete
+              <strong class="text-danger" id="library-name"></strong>?<br>
+              <span class="text-danger">
+                *Warning: The chords belong to this library will be remove together!
+              </span>
+            </p>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+            <button type="button" id="confirmDeleteLibrary" class="btn btn-danger">Delete</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Rename Chord Library Modal -->
+    <div class="modal fade" id="renameLibraryModal" tabindex="-1" aria-labelledby="renameLibraryModalLabel"
+      aria-hidden="true">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="renameLibraryModal">Rename Chord Library</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body">
+            <input type="text" id="newName" class="form-control" placeholder="Enter new name">
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-success" onclick="saveName()">Save</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+
+    <script src="{% static 'HelloMusicApp/js/bootstrap.bundle.min.js' %}"></script>
+    <script src="{% static 'HelloMusicApp/js/jquery.min.js' %}"></script>
     <script src="{% static 'HelloMusicApp/js/vexflow.js' %}"></script>
     <script src="{% static 'HelloMusicApp/js/Tone.js' %}"></script>
     <script src="{% static 'HelloMusicApp/js/sheet_editor.js' %}"></script>
+
+    <script>
+      // Ensure CSRF token for Django
+      const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+
+      $.ajaxSetup({
+        headers: {
+          'X-CSRFToken': csrfToken
+        }
+      });
+
+      //Defautl alert function
+      function showAlert(type, message) {
+
+        const alertHtml = `
+                  <div class="alert alert-dismissible alert-${type} custom-alert" role="alert">
+                      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                      ${message}
+                  </div>
+              `;
+
+        // Append alert to the alert container
+        const alertElement = document.createElement('div');
+        alertElement.innerHTML = alertHtml;
+        document.body.appendChild(alertElement);
+
+        setTimeout(() => {
+          alertElement.remove();
+        }, 5000);
+      }
+
+      function triggerAction(type, message) {
+        localStorage.setItem('alertMessage', JSON.stringify({
+          type,
+          message
+        }));
+        location.reload();
+      }
+
+      // Display message if available in localStorage
+      window.addEventListener('load', function () {
+        const alertData = localStorage.getItem('alertMessage');
+        if (alertData) {
+          const {
+            type,
+            message
+          } = JSON.parse(alertData);
+          showAlert(type, message);
+          localStorage.removeItem('alertMessage');
+        }
+      });
+
+      const contextMenu = document.getElementById('context-menu');
+      let selectedLibraryId = null;
+      let selectedLibraryName = null;
+
+
+      document.querySelectorAll('.list-group-item').forEach(item => {
+        item.addEventListener('contextmenu', function (event) {
+          event.preventDefault(); // Prevent the default context menu
+
+          selectedLibraryId = item.getAttribute('id');
+          selectedLibraryName = item.getAttribute('name');
+
+          document.getElementById('library-name').textContent = selectedLibraryName;
+
+          /*fetch(`/shareSheet/${selectedSheetId}/`)
+              .then(response => response.json())
+              .then(data => {
+  
+                  const userListContainer = document.getElementById('user_with_sheet');
+                  userListContainer.innerHTML = '';
+                  user_role = data.current_role;
+                  data.users.forEach(user => {
+                      const userItem = document.createElement('li');
+                      userItem.textContent = `${user.email} (${user.role})`;
+                      userListContainer.appendChild(userItem);
+                  });
+              })
+              .catch(error => console.error('Error fetching sheet details:', error));
+  */
+
+          // Show the custom context menu at the mouse position
+          contextMenu.style.display = 'block';
+          contextMenu.style.left = `${event.pageX}px`;
+          contextMenu.style.top = `${event.pageY}px`;
+        });
+
+      });
+
+
+      // Hide context menu on left-click 
+      document.addEventListener('click', function (event) {
+        if (!contextMenu.contains(event.target)) {
+          contextMenu.style.display = 'none';
+        }
+      });
+
+      // Hide the context menu if right-click 
+      document.addEventListener('contextmenu', function (event) {
+        if (!event.target.closest('.list-group-item')) {
+          contextMenu.style.display = 'none';
+        }
+      });
+
+      // Chord Library
+      //open add library window
+      document.getElementById('addLibrary').addEventListener('click', function (event) {
+        event.preventDefault();
+
+        $('#addlibraryModal').modal('show');
+      });
+
+      //open rename library window
+      document.getElementById('rename-option').addEventListener('click', function (event) {
+        event.preventDefault();
+
+        document.getElementById('newName').value = selectedLibraryName;
+        contextMenu.style.display = 'none';
+        $('#renameLibraryModal').modal('show');
+      });
+
+      //Create Chord Library
+      function createLibrary() {
+        const libraryName = document.getElementById('libraryName').value;
+
+        $.ajax({
+          url: `/createLibrary/`,
+          type: 'POST',
+          data: {
+            'name': libraryName,
+          },
+          success: function (response) {
+            $('#addlibraryModal').modal('hide');
+            if (response.status) {
+              triggerAction('success', `${response.mes}`);
+            } else {
+              showAlert('warning', `Failed to create library: ${response.mes}`);
+            }
+          },
+          error: function (xhr, status, error) {
+            showAlert('danger', 'An error occurred while create the chord library.');
+            console.error("Error in AJAX request:", error);
+          }
+        });
+      }
+
+      //Delete Chord Library
+      $('#delete-option').on('click', function (event) {
+        event.preventDefault();
+
+        const deleteModal = new bootstrap.Modal(document.getElementById('deletelibraryModal'));
+        deleteModal.show();
+
+
+        document.getElementById('confirmDeleteLibrary').addEventListener('click', function () {
+
+          $.ajax({
+            url: `/deleteLibrary/${selectedLibraryId}/`,
+            type: 'POST',
+            success: function (data) {
+              deleteModal.hide();
+              if (data.status) {
+                triggerAction('success', `${data.mes}`);
+              } else {
+                showAlert('warning', `Failed to delete chord library : ${data.mes}`);
+              }
+            },
+            error: function (xhr, status, error) {
+              showAlert('danger', 'An error occurred while deleting the chord library.');
+              console.error("Error in AJAX request:", error);
+            }
+          });
+        });
+
+        $('#context-menu').hide();
+      });
+
+      //Rename Chord Library
+      function saveName() {
+        const newName = document.getElementById('newName').value;
+
+        $.ajax({
+          url: `/renameLibrary/${selectedLibraryId}/`,
+          type: 'POST',
+          data: {
+            'name': newName,
+          },
+          success: function (response) {
+            $('#renameLibraryModal').modal('hide');
+            if (response.status) {
+              triggerAction('success', `${response.mes}`);
+            } else {
+              showAlert('warning', `Failed to rename chord library : ${response.mes}`);
+            }
+          },
+          error: function (xhr, status, error) {
+            showAlert('danger', 'An error occurred while rename the chord library.');
+            console.error("Error in AJAX request:", error);
+          }
+        });
+      }
+    </script>
 </body>
 
 </html>

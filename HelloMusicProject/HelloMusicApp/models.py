@@ -138,25 +138,26 @@ class Measure(models.Model):
     def __str__(self):
         return self.measure_number
 
-# class Staff(models.Model):
-    
-#     ID = models.AutoField(primary_key=True)
-#     sheet = models.ForeignKey(MusicSheet, on_delete=models.CASCADE,related_name="staffs")
-#     instrument = models.CharField(max_length=50)
-#     clef_type = models.CharField(max_length=50)
-#     position = models.IntegerField(default=0)
-
-#     def __str__(self):
-#         return self.instrument
-
 class Chord(models.Model):
     
     ID = models.AutoField(primary_key=True)
+    chord_symbol = models.CharField(max_length=20, blank=True)
     note = models.CharField(max_length=100)
-    chord_symbol = models.CharField(max_length=20)
-
+    
     def __str__(self):
         return self.chord_symbol
+    
+    
+class ChordLibrary(models.Model):
+    
+    ID = models.AutoField(primary_key=True)
+    name =  models.CharField(max_length=100)
+    chords = models.ManyToManyField(Chord, related_name="chords",blank=True)
+    user = models.ForeignKey(User, on_delete=models.CASCADE) 
+
+    def __str__(self):
+        return self.name 
+
 
 class Rest(models.Model):
     
