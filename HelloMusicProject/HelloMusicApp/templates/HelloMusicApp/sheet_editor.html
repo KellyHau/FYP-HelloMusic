@@ -234,7 +234,6 @@
             </p>
           </div>
           <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
             <button type="button" id="confirmDeleteLibrary" class="btn btn-danger">Delete</button>
           </div>
         </div>
@@ -259,6 +258,51 @@
         </div>
       </div>
     </div>
+
+    <!-- Chord Selection Modal -->
+    <div class="modal fade" id="chordModal" tabindex="-1" aria-labelledby="chordModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="chordModalLabel">Select Chords for <strong id="library-name-chord"></strong>
+            </h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <div class="row">
+              <!-- Chord Selection Panel -->
+
+              <div class="col-md-5">
+                <h5>Available Chords</h5>
+                <div class="select-chord-panel">
+                  <ul id="available-chords" class="list-group">
+                  </ul>
+                </div>
+              </div>
+
+              <!-- Control Buttons -->
+              <div class="col-md-2 d-flex flex-column align-items-center justify-content-center">
+                <button class="btn btn-info my-2 w-50" id="add-chord">→</button>
+                <button class="btn btn-secondary my-2 w-50" id="remove-chord">←</button>
+              </div>
+
+              <!-- Chord Library Panel -->
+              <div class="col-md-5">
+                <h5>Chord Library</h5>
+                <div class="select-chord-panel">
+                  <ul id="chord-library" class="list-group">
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-success" onclick="saveLibrary()">Save Changes</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
 
 
     <script src="{% static 'HelloMusicApp/js/bootstrap.bundle.min.js' %}"></script>
@@ -322,39 +366,123 @@
       let selectedLibraryId = null;
       let selectedLibraryName = null;
 
+      // syncronize the chord data and library
+      (async () => {
+        try {
+          // Fetch chord data
+          chordData = await fetchChordData();
 
-      document.querySelectorAll('.list-group-item').forEach(item => {
-        item.addEventListener('contextmenu', function (event) {
-          event.preventDefault(); // Prevent the default context menu
+          // Populate a list or UI element with the library's chords
+          let chordListContainer = document.getElementById('available-chords');
+          chordListContainer.innerHTML = '';
 
-          selectedLibraryId = item.getAttribute('id');
-          selectedLibraryName = item.getAttribute('name');
+          chordData.forEach(chord => {
+            const chordItem = document.createElement('li');
+            chordItem.textContent = chord.symbol;
+            chordItem.className = 'list-group-item';
+            chordListContainer.appendChild(chordItem);
+          });
 
-          document.getElementById('library-name').textContent = selectedLibraryName;
 
-          /*fetch(`/shareSheet/${selectedSheetId}/`)
-              .then(response => response.json())
-              .then(data => {
-  
-                  const userListContainer = document.getElementById('user_with_sheet');
-                  userListContainer.innerHTML = '';
-                  user_role = data.current_role;
-                  data.users.forEach(user => {
-                      const userItem = document.createElement('li');
-                      userItem.textContent = `${user.email} (${user.role})`;
-                      userListContainer.appendChild(userItem);
+          const availableChords = document.getElementById("available-chords");
+          const chordLibrary = document.getElementById("chord-library");
+
+          const addButton = document.getElementById("add-chord");
+          const removeButton = document.getElementById("remove-chord");
+
+          // Function to toggle active class
+          const toggleActive = (list) => {
+            list.querySelectorAll(".list-group-item").forEach((item) => {
+              item.addEventListener("click", (event) => {
+                if (event.ctrlKey || event.metaKey) {
+                  // Toggle active state for multi-selection
+                  item.classList.add("active");
+                } else {
+                  // Clear previous selection and set active state for the clicked item
+                  list.querySelectorAll(".list-group-item").forEach((i) => i.classList.remove("active"));
+                  item.classList.add("active");
+                }
+              });
+            });
+          };
+
+          // Call toggleActive for both lists initially
+          toggleActive(availableChords);
+          toggleActive(chordLibrary);
+
+          // Add multiple chords to the library
+          addButton.addEventListener("click", () => {
+            const selectedChords = availableChords.querySelectorAll(".list-group-item.active");
+            if (selectedChords.length > 0) {
+              selectedChords.forEach((chord) => {
+                chord.classList.remove("active");
+                chordLibrary.appendChild(chord);
+              });
+              toggleActive(chordLibrary); // Reattach event listeners to library items
+            }
+          });
+
+          // Remove multiple chords from the library
+          removeButton.addEventListener("click", () => {
+            const selectedChords = chordLibrary.querySelectorAll(".list-group-item.active");
+            if (selectedChords.length > 0) {
+              selectedChords.forEach((chord) => {
+                chord.classList.remove("active");
+                availableChords.appendChild(chord);
+              });
+              toggleActive(availableChords); // Reattach event listeners to available items
+            }
+          });
+
+          // right click open chord library option
+          document.querySelectorAll('.list-group-item').forEach(item => {
+            item.addEventListener('contextmenu', function (event) {
+              event.preventDefault();
+
+              selectedLibraryId = item.getAttribute('id');
+              selectedLibraryName = item.getAttribute('name');
+
+              document.getElementById('library-name').textContent = selectedLibraryName;
+
+              fetch(`/updateLibrary/${selectedLibraryId}/`)
+                .then(response => response.json())
+                .then(data => {
+                  const chordLibraryContainer = document.getElementById('chord-library');
+                  const chordItems = document.querySelectorAll('#available-chords .list-group-item');
+                  chordLibraryContainer.innerHTML = '';
+
+                  data.forEach(symbol => {
+                    const chordItem = document.createElement('li');
+                    chordItem.textContent = symbol.symbol;
+                    chordItem.className = 'list-group-item';
+                    chordLibraryContainer.appendChild(chordItem);
+
+                    chordItems.forEach(item => {
+                      if (item.textContent === symbol.symbol) { 
+                        item.remove();
+                      }
+                    });
                   });
-              })
-              .catch(error => console.error('Error fetching sheet details:', error));
-  */
+                  toggleActive(availableChords);
+                  toggleActive(chordLibraryContainer);
+                })
+                .catch(error => console.error('Error fetching library details:', error));
 
-          // Show the custom context menu at the mouse position
-          contextMenu.style.display = 'block';
-          contextMenu.style.left = `${event.pageX}px`;
-          contextMenu.style.top = `${event.pageY}px`;
-        });
+              // Show the custom context menu at the mouse position
+              contextMenu.style.display = 'block';
+              contextMenu.style.left = `${event.pageX}px`;
+              contextMenu.style.top = `${event.pageY}px`;
+            });
 
-      });
+          });
+
+          // Call toggleActive after dynamically adding list items
+          toggleActive(chordListContainer);
+        } catch (error) {
+          console.error('Error fetching chord data:', error);
+        }
+
+      })();
 
 
       // Hide context menu on left-click 
@@ -372,14 +500,14 @@
       });
 
       // Chord Library
-      //open add library window
+      //open add library modal
       document.getElementById('addLibrary').addEventListener('click', function (event) {
         event.preventDefault();
 
         $('#addlibraryModal').modal('show');
       });
 
-      //open rename library window
+      //open rename library modal
       document.getElementById('rename-option').addEventListener('click', function (event) {
         event.preventDefault();
 
@@ -387,6 +515,16 @@
         contextMenu.style.display = 'none';
         $('#renameLibraryModal').modal('show');
       });
+
+      //open organize library modal
+      document.getElementById('edit-option').addEventListener('click', function (event) {
+        event.preventDefault();
+
+        document.getElementById('library-name-chord').textContent = selectedLibraryName;
+        contextMenu.style.display = 'none';
+        $('#chordModal').modal('show');
+      });
+
 
       //Create Chord Library
       function createLibrary() {
@@ -464,6 +602,50 @@
           },
           error: function (xhr, status, error) {
             showAlert('danger', 'An error occurred while rename the chord library.');
+            console.error("Error in AJAX request:", error);
+          }
+        });
+      }
+
+      //Save Chord Library
+      function saveLibrary() {
+        const chordLibraryItems = document.querySelectorAll('#chord-library .list-group-item');
+
+        const chordLibraryData = Array.from(chordLibraryItems).map(item => {
+          const symbol = item.textContent.trim(); // Get the chord symbol
+          const chordInfo = chordData.find(chord => chord.symbol === symbol);
+
+          const chordNotes = chordInfo.notes.map(note => {
+            const noteLetter = note[0].toLowerCase(); // Convert letter to lowercase
+            const octave = note.slice(1); // Extract the octave number
+            return `${noteLetter}/${octave}`; // Combine in VexFlow format
+          });
+
+          // Return an object with the symbol and corresponding notes
+          return {
+            symbol: symbol,
+            notes: chordNotes,
+          };
+        });
+
+        console.log(chordLibraryData);
+        $.ajax({
+          url: `/updateLibrary/${selectedLibraryId}/`,
+          type: 'POST',
+          contentType: 'application/json',
+          data: JSON.stringify({
+            'libraryData': chordLibraryData,
+          }),
+          success: function (response) {
+            $('#chordModal').modal('hide');
+            if (response.status) {
+              triggerAction('success', `${response.mes}`);
+            } else {
+              showAlert('warning', `Failed to update chord library : ${response.mes}`);
+            }
+          },
+          error: function (xhr, status, error) {
+            showAlert('danger', 'An error occurred while update the chord library.');
             console.error("Error in AJAX request:", error);
           }
         });

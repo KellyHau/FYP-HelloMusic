@@ -29,6 +29,7 @@ urlpatterns = [
     path('createLibrary/', views.create_library, name='createLibrary'),
     path("deleteLibrary/<int:library_id>/",views.delete_library, name="deleteLibrary"),
     path('renameLibrary/<int:library_id>/', views.rename_library, name='renameLibrary'),
+    path('updateLibrary/<int:library_id>/', views.update_library, name='updateLibrary'),
     path('sheet/<str:sheet_title>/', views.edit_sheet, name='edit_sheet'),
     path('api/save_sheet/<int:sheet_id>/', views.save_sheet, name='save_sheet'),
     path('api/load_sheet/<int:sheet_id>/', views.load_sheet, name='load_sheet'),

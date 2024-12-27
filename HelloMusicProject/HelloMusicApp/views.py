@@ -677,6 +677,94 @@ def delete_library(request, library_id):
     
     except MusicSheetFolder.DoesNotExist:
         return JsonResponse({'status': False, 'mes': 'Library not found'})
+    
+
+
+def create_chord(request,library_data):
+ 
+    for chord_data in library_data:
+        symbol = chord_data['symbol']
+        notes = ",".join(chord_data['notes'])  
+              
+        chord, created = Chord.objects.get_or_create(
+        chord_symbol=symbol,
+        defaults={'note': notes}
+        )
+    
+
+def update_library(request,library_id):
+
+    if request.method == "POST":
+        try:
+            chord_library = get_object_or_404(ChordLibrary, ID=library_id)
+           
+            data = json.loads(request.body)
+            library_data = data.get('libraryData', [])         
+            
+            create_chord(request,library_data)
+
+            chord_library.chords.clear()
+            for data in library_data:
+                chord = get_object_or_404(Chord, chord_symbol=data['symbol'])
+                chord_library.chords.add(chord)
+
+            chord_library.save()
+
+            return JsonResponse({'status': True, 'mes': 'Chord library saved successfully!'})
+        except Exception as e:
+            return JsonResponse({'status': False, 'mes': str(e)}, status=400)
+    
+    if request.method == "GET":
+        chord_library = get_object_or_404(ChordLibrary, ID=library_id)
+
+        # Get the chords in the library
+        chords = chord_library.chords.all()
+
+        # Prepare the chords for the template
+        data = [
+            {
+                'symbol': chord.chord_symbol,
+            }
+            for chord in chords
+        ]
+
+        return JsonResponse(data, safe = False)
+
+    
+def generate_chord(chord_symbol):
+   # Retrieve chord data from the C_MAJOR_KEY_LIB
+    if chord_symbol in C_MAJOR_KEY_LIB:
+        chord_data = C_MAJOR_KEY_LIB[chord_symbol]
+        music21_chord = chord.Chord(chord_data["notes"])
+        music21_chord.duration.quarterLength = 4  # Duration of a whole note
+        
+        # Construct the output dictionary
+        output = {
+            "symbol": chord_symbol,
+            "name" : chord_data["name"],
+            "notes": [n.nameWithOctave for n in music21_chord.pitches],
+            "duration": music21_chord.duration.quarterLength,
+            "type": chord_data["type"]
+        }
+        return output
+    else:
+        raise ValueError(f"Chord '{chord_symbol}' not found in the library")
+    
+
+# Generate and export multiple chords
+exported_chords = []
+for chord_symbol in C_MAJOR_KEY_LIB.keys():
+    exported_chords.append(generate_chord(chord_symbol))
+
+output_path = os.path.join(settings.BASE_DIR, "HelloMusicApp" ,"static", "HelloMusicApp", "chords.json")
+
+# Ensure the static directory exists
+os.makedirs(os.path.dirname(output_path), exist_ok=True)
+
+ # Export chord as JSON
+import json
+with open(output_path, "w") as file:
+    json.dump(exported_chords, file, indent=4)
 
 
 # Music Notation Management -----------------------------------------------------------------------------------------------------
@@ -855,37 +943,3 @@ def delete_lyrics(request, sheet_id, lyrics_id):
             'message': str(e)
         }, status=400)
 
-def generate_chord(chord_symbol):
-   # Retrieve chord data from the C_MAJOR_KEY_LIB
-    if chord_symbol in C_MAJOR_KEY_LIB:
-        chord_data = C_MAJOR_KEY_LIB[chord_symbol]
-        music21_chord = chord.Chord(chord_data["notes"])
-        music21_chord.duration.quarterLength = 4  # Duration of a whole note
-        
-        # Construct the output dictionary
-        output = {
-            "symbol": chord_symbol,
-            "name" : chord_data["name"],
-            "notes": [n.nameWithOctave for n in music21_chord.pitches],
-            "duration": music21_chord.duration.quarterLength,
-            "type": chord_data["type"]
-        }
-        return output
-    else:
-        raise ValueError(f"Chord '{chord_symbol}' not found in the library")
-    
-
-# Generate and export multiple chords
-exported_chords = []
-for chord_symbol in C_MAJOR_KEY_LIB.keys():
-    exported_chords.append(generate_chord(chord_symbol))
-
-output_path = os.path.join(settings.BASE_DIR, "HelloMusicApp" ,"static", "HelloMusicApp", "chords.json")
-
-# Ensure the static directory exists
-os.makedirs(os.path.dirname(output_path), exist_ok=True)
-
- # Export chord as JSON
-import json
-with open(output_path, "w") as file:
-    json.dump(exported_chords, file, indent=4)

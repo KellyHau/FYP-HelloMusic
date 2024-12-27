@@ -462,3 +462,23 @@ button {
     color: white;
     border-color: #45a049;
 }
+
+
+/*Chord selecte panel*/
+.select-chord-panel{
+    height: 200px;
+    overflow: scroll;
+    overflow-x: hidden;
+}
+
+.list-group-item {
+    cursor: pointer;
+  }
+  
+.list-group-item.active {
+    background-color: #99c5f5;
+    border-color:#99c5f5 ;
+    color: black;
+  }
+  
+  
