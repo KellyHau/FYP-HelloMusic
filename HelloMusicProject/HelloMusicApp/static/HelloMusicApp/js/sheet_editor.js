@@ -2016,10 +2016,140 @@ document.addEventListener('DOMContentLoaded', function() {
       });
 });
 
+function exportSheetAsPDF(sheetTitle) {
+    // Get all staff rows
+    const staffRows = document.querySelectorAll('.staff-row');
+    
+    if (!staffRows.length) {
+        console.error('No staff rows found');
+        return;
+    }
+
+    try {
+        // Create a new jsPDF instance with smaller page size (A4 by default)
+        const { jsPDF } = window.jspdf;
+        const pdf = new jsPDF({
+            orientation: 'portrait',
+            unit: 'mm',
+            format: 'a4'
+        });
+
+        // Page dimensions in mm (A4)
+        const pageWidth = pdf.internal.pageSize.getWidth();
+        const pageHeight = pdf.internal.pageSize.getHeight();
+        const margin = 5; // Reduced margin to 5mm
+        
+        // Add title to PDF
+        pdf.setFontSize(16);
+        const titleWidth = pdf.getStringUnitWidth(sheetTitle) * pdf.getFontSize() / pdf.internal.scaleFactor;
+        const titleX = (pageWidth - titleWidth) / 2; // Center the title
+        pdf.text(sheetTitle, titleX, margin + 10); // Position title
+
+        // Start yPosition after title
+        let yPosition = margin + 20; // Increased starting position to accommodate title
+
+        // Calculate scaling factor based on original SVG size
+        const firstSvg = staffRows[0].querySelector('svg');
+        const originalWidth = firstSvg.viewBox.baseVal.width;
+        
+        // Scale factor to make the output smaller (adjust this value to change size)
+        const scaleFactor = 0.8; 
+
+        // Process each staff row
+        Array.from(staffRows).forEach((row) => {
+            const svgElement = row.querySelector('svg');
+            
+            if (!svgElement) {
+                console.warn('No SVG element found in staff row, skipping...');
+                return;
+            }
+
+            // Create a canvas element
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+
+            // Get SVG dimensions
+            const svgWidth = svgElement.viewBox.baseVal.width;
+            const svgHeight = svgElement.viewBox.baseVal.height;
+            
+            // Set canvas size with high resolution but scaled down
+            canvas.width = svgWidth * 1.5;  // Reduced multiplication factor
+            canvas.height = svgHeight * 1.5;
+
+            // Convert SVG to string
+            const svgData = new XMLSerializer().serializeToString(svgElement);
+            const svgBlob = new Blob([svgData], { type: 'image/svg+xml' });
+            const url = URL.createObjectURL(svgBlob);
+
+            // Create image element
+            const img = new Image();
+            img.onload = function() {
+                // Draw image to canvas
+                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                
+                // Convert canvas to PNG
+                const pngData = canvas.toDataURL('image/png');
+
+                // Calculate dimensions to fit within page margins with scaling
+                const availableWidth = (pageWidth - (2 * margin)) * scaleFactor;
+                const imageWidth = availableWidth;
+                const imageHeight = (svgHeight / svgWidth) * imageWidth;
+
+                // Check if we need a new page
+                if (yPosition + imageHeight > pageHeight - margin) {
+                    pdf.addPage();
+                    yPosition = margin;
+                }
+
+                // Add image to PDF
+                try {
+                    pdf.addImage(
+                        pngData,
+                        'PNG',
+                        margin + ((pageWidth - (2 * margin)) * (1 - scaleFactor) / 2), // Center horizontally
+                        yPosition,
+                        imageWidth,
+                        imageHeight
+                    );
+                    
+                    // Update position for next image with reduced spacing
+                    yPosition += imageHeight + 3; // Reduced spacing between staves to 3mm
+
+                    // Clean up
+                    URL.revokeObjectURL(url);
+                } catch (err) {
+                    console.error('Error adding image to PDF:', err);
+                }
+            };
+
+            // Set image source to trigger loading
+            img.src = url;
+        });
+
+        // Wait a bit for all images to be processed before saving
+        setTimeout(() => {
+            try {
+                pdf.save(`${sheetTitle}.pdf`);
+            } catch (error) {
+                console.error('Error saving PDF:', error);
+            }
+        }, 1000);
+
+    } catch (error) {
+        console.error('Error generating PDF:', error);
+        throw error;
+    }
+}
+
+
+
+
 function setStaffContainerInteraction(isViewer) {
     const staffScrollContainer = document.querySelector('.staff-scroll-container');
     const staffContainer = document.getElementById('staff-container');
-    const note = document.querySelector('.note-palette');
+    const notePalettes = document.querySelectorAll('.note-palette');
+    const library = document.querySelector('.chord-library');
+    const chord = document.querySelector('.chord-palette');
     const control = document.querySelector('.controls');
 
     if (isViewer) {
@@ -2029,14 +2159,24 @@ function setStaffContainerInteraction(isViewer) {
       staffContainer.style.pointerEvents = 'none';
       staffContainer.style.userSelect = 'none';
 
-      note.style.pointerEvents = 'none';
-      note.style.userSelect = 'none';
+      notePalettes.forEach(note => {
+        note.style.pointerEvents = 'none';
+        note.style.userSelect = 'none';
+        note.style.opacity = '0.7'; // Optional: Add visual indication of disabled state
+      });
+
+      chord.style.pointerEvents = 'none';
+      chord.style.userSelect = 'none';
+      library.style.pointerEvents = 'none';
+      library.style.userSelect = 'none';
       control.style.pointerEvents = 'none';
       control.style.userSelect = 'none';
       
       // Optional: Add visual indication of disabled state
-      note.style.opacity = '0.7';
+      chord.style.opacity = '0.7';
+      library.style.opacity = '0.7';
       control.style.opacity = '0.7';
+
       staffScrollContainer.style.cursor = 'not-allowed';
     } else {
       // Remove interaction-blocking styles when user is not a viewer
@@ -2045,13 +2185,23 @@ function setStaffContainerInteraction(isViewer) {
       staffContainer.style.pointerEvents = '';
       staffContainer.style.userSelect = '';
 
-      note.style.pointerEvents = '';
-      note.style.userSelect = '';
+      notePalettes.forEach(note => {
+        note.style.pointerEvents = '';
+        note.style.userSelect = '';
+        note.style.opacity = ''; // Remove visual indication
+      });
+
+
+      chord.style.pointerEvents = '';
+      chord.style.userSelect = '';
+      library.style.pointerEvents = '';
+      library.style.userSelect = '';
       control.style.pointerEvents = '';
       control.style.userSelect = '';
       
       // Remove optional visual indicators
-      note.style.opacity = '';
+      chord.style.opacity = '';
+      library.style.opacity = '';
       control.style.opacity = '';
       staffScrollContainer.style.cursor = '';
     }

@@ -1,6 +1,8 @@
 import json
 from django.shortcuts import render, redirect
 from django.shortcuts import get_object_or_404
+from django.core.exceptions import ValidationError
+from django.core.validators import validate_email
 from django.contrib import messages
 from django.http import JsonResponse
 from django.views.decorators.http import require_POST
@@ -295,9 +297,17 @@ def share_sheet_to_user(request, sheet_id):
         email = request.POST.get('email', '').strip()
         role = request.POST.get('role', '').strip()
         
+        if not email:
+            return JsonResponse({'status': False, 'mes': 'Email field cannot be empty'})
+     
         try:
-            user = get_object_or_404(User, email=email)
-            sheet = get_object_or_404(MusicSheet, ID=sheet_id)
+            validate_email(email)
+        except ValidationError:
+            return JsonResponse({'status': False, 'mes': 'Invalid email format'})
+        
+        try:
+            user = User.objects.get(email=email)
+            sheet = MusicSheet.objects.get(ID=sheet_id)
          
             UserMusicSheet.objects.update_or_create(
                 user=user,
@@ -320,7 +330,9 @@ def share_sheet_to_user(request, sheet_id):
             return JsonResponse({'status': False, 'mes': 'User not found'})
         except MusicSheet.DoesNotExist:
             return JsonResponse({'status': False, 'mes': 'Music sheet not found'})
-    
+        except Exception as e:
+            return JsonResponse({'status': False, 'mes': f'{str(e)}'})
+   
     if request.method == "GET":
                 
         users = UserMusicSheet.objects.filter(sheet=sheet_id).annotate(
@@ -336,7 +348,7 @@ def share_sheet_to_user(request, sheet_id):
          
         user_list = [
             {
-                "email": user.user.username,
+                "email": user.user.email,
                 "role": user.role
             }
             for user in users
@@ -347,6 +359,25 @@ def share_sheet_to_user(request, sheet_id):
                 "current_role": current_user.role ,
             }
         return JsonResponse(data)
+
+# Remove user sheet permission
+@require_POST
+def remove_sheet_permission(request, sheet_id):
+
+    email = request.POST.get('email', '').strip()
+    try:
+        # Get the UserMusicSheet entry for the given email and sheet ID
+        user_music_sheet = get_object_or_404(UserMusicSheet, sheet=sheet_id, user__email=email)
+
+        # Delete the entry
+        user_music_sheet.delete()
+
+        return JsonResponse({'status': True, 'mes': f'Permission removed for {email}'})
+    except UserMusicSheet.DoesNotExist:
+        return JsonResponse({'status': False, 'mes': 'Permission not found for the given user and sheet'})
+    except Exception as e:
+        return JsonResponse({'status': False, 'mes': f'An error occurred: {str(e)}'})
+  
     
 # Filter sheet
 def filter_music_sheets(request):
@@ -529,7 +560,7 @@ def share_folder_to_user(request, folder_id):
         
         user_list = [
             {
-                "email": user.user.username,
+                "email": user.user.email,
                 "role": user.role
             }
             for user in users
@@ -541,6 +572,25 @@ def share_folder_to_user(request, folder_id):
             }
         return JsonResponse(data)
         
+
+# Remove user folder permission
+@require_POST
+def remove_folder_permission(request, folder_id):
+
+    email = request.POST.get('email', '').strip()
+    try:
+        # Get the UserMusicSheet entry for the given email and sheet ID
+        user_folder = get_object_or_404(UserMusicSheetFolder, folder=folder_id, user__email=email)
+
+        # Delete the entry
+        user_folder.delete()
+
+        return JsonResponse({'status': True, 'mes': f'Permission removed for {email}'})
+    except UserMusicSheet.DoesNotExist:
+        return JsonResponse({'status': False, 'mes': 'Permission not found for the given user and folder'})
+    except Exception as e:
+        return JsonResponse({'status': False, 'mes': f'An error occurred: {str(e)}'})
+    
 
 @require_POST
 def delete_folder(request, folder_id): 

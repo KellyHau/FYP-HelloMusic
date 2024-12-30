@@ -135,9 +135,23 @@
                     const userListContainer = document.getElementById('user_with_folder');
                     userListContainer.innerHTML = '';
                     user_role = data.current_role;
+
                     data.users.forEach(user => {
                         const userItem = document.createElement('li');
                         userItem.textContent = `${user.email} (${user.role})`;
+
+                        // Add remove button for each user
+                        if (user.role !== 'Owner' && user_role === 'Owner') {
+                            const removeButton = document.createElement('button');
+                            removeButton.textContent = 'Remove';
+                            removeButton.className = 'btn btn-danger btn-sm ms-5';
+                            removeButton.addEventListener('click', () => {
+                                removeUserPermission(user.email);
+                            });
+
+                            userItem.appendChild(removeButton);
+                        }
+
                         userListContainer.appendChild(userItem);
                     });
                 })
@@ -242,12 +256,10 @@
         currentFolderId = selectedFolderId;
         document.getElementById('shareFolderModalLabel').textContent = `Share "${selectedName}"`;
         contextMenu.style.display = 'none';
-        
-        if (user_role === "Viewer" || user_role === "viewer")
-        {
+
+        if (user_role === "Viewer" || user_role === "viewer") {
             $('#user_role').hide();
-        }
-        else{
+        } else {
             $('#user_role').show();
         }
 
@@ -266,6 +278,31 @@
             data: {
                 'email': email,
                 'role': role,
+            },
+            success: function (response) {
+                $('#shareFolderModal').modal('hide');
+                if (response.status) {
+                    $("#shareFolderForm")[0].reset();
+                    showAlert('success', `${response.mes}`);
+                } else {
+                    showAlert('warning', `Failed to share folder : ${response.mes}`);
+                }
+            },
+            error: function (xhr, status, error) {
+                showAlert('danger', 'An error occurred while share the folder.');
+                console.error("Error in AJAX request:", error);
+            }
+        });
+    }
+
+    // remove user sheet permission
+    function removeUserPermission(email) {
+
+        $.ajax({
+            url: `/removeFolderPermission/${selectedFolderId}/`,
+            type: 'POST',
+            data: {
+                'email': email,
             },
             success: function (response) {
                 $('#shareFolderModal').modal('hide');

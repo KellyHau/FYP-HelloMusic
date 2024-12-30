@@ -15,19 +15,32 @@ document.querySelectorAll('.music-sheet-item').forEach(item => {
         document.getElementById('sheet-name').textContent = selectedTitle;
 
         fetch(`/shareSheet/${selectedSheetId}/`)
-            .then(response => response.json())
-            .then(data => {
-
-                const userListContainer = document.getElementById('user_with_sheet');
-                userListContainer.innerHTML = '';
-                user_role = data.current_role;
-                data.users.forEach(user => {
-                    const userItem = document.createElement('li');
-                    userItem.textContent = `${user.email} (${user.role})`;
-                    userListContainer.appendChild(userItem);
-                });
-            })
-            .catch(error => console.error('Error fetching sheet details:', error));
+        .then(response => response.json())
+        .then(data => {
+            const userListContainer = document.getElementById('user_with_sheet');
+            userListContainer.innerHTML = '';
+            user_role = data.current_role;
+    
+            data.users.forEach(user => {
+                const userItem = document.createElement('li');
+                userItem.textContent = `${user.email} (${user.role})`;
+    
+                // Add remove button for each user
+                if (user.role !== 'Owner' && user_role === 'Owner') {
+                    const removeButton = document.createElement('button');
+                    removeButton.textContent = 'Remove';
+                    removeButton.className = 'btn btn-danger btn-sm ms-5';
+                    removeButton.addEventListener('click', () => {
+                        removeUserPermission(user.email);
+                 });
+    
+                    userItem.appendChild(removeButton);
+                }
+    
+                userListContainer.appendChild(userItem);
+            });
+        })
+        .catch(error => console.error('Error fetching sheet details:', error));
 
 
         // Show the custom context menu at the mouse position
@@ -154,6 +167,31 @@ function savePermission() {
         data: {
             'email': email,
             'role': role,
+        },
+        success: function (response) {
+            $('#shareSheetModal').modal('hide');
+            if (response.status) {
+                $("#shareSheetForm")[0].reset();
+                showAlert('success', `${response.mes}`);
+            } else {
+                showAlert('warning', `Failed to share music sheet : ${response.mes}`);
+            }
+        },
+        error: function (xhr, status, error) {
+            showAlert('danger', 'An error occurred while share the music sheet.');
+            console.error("Error in AJAX request:", error);
+        }
+    });
+}
+
+// remove user sheet permission
+function removeUserPermission(email) {
+
+    $.ajax({
+        url: `/removeSheetPermission/${currentSheetId}/`,
+        type: 'POST',
+        data: {
+            'email': email,
         },
         success: function (response) {
             $('#shareSheetModal').modal('hide');

@@ -22,6 +22,7 @@
         <a href="{% url 'home' %}">
           <img src="{% static 'HelloMusicApp/images/logo.png' %}" alt="Logo" class="img-fluid w-100" />
         </a>
+        <button class="btn btn-primary mt-5" onclick="exportSheetAsPDF('{{ sheet_title }}')">Export as PDF</button>
       </div>
 
       <!-- Top Menu -->
@@ -57,7 +58,7 @@
           </div>
 
           <!-- Duration Selector -->
-          <div class="control-group col-md-2 d-flex flex-column justify-content-center">
+          <div class="control-group note-palette col-md-2 d-flex flex-column justify-content-center">
             <label for="duration-select">Duration:</label>
             <select id="duration-select" class="form-control text-center">
               <option value="4">4</option>
@@ -303,8 +304,9 @@
       </div>
     </div>
 
-
-
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/0.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.4.0/jspdf.umd.min.js"></script>
     <script src="{% static 'HelloMusicApp/js/bootstrap.bundle.min.js' %}"></script>
     <script src="{% static 'HelloMusicApp/js/jquery.min.js' %}"></script>
     <script src="{% static 'HelloMusicApp/js/vexflow.js' %}"></script>

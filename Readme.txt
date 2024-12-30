@@ -51,7 +51,7 @@ After successful install MySQL, open the cmd terminal on your computer to create
 	CREATE DATABASE hellomusic; 
 
 ** If you using the password different to above password, please go to "/HelloMusicProject/HelloMusicProject" directory and click on "settings.py"
-** Finf and modify below section
+** Find and modify below section
 
 DATABASES = {
     'default': {
