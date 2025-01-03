@@ -633,7 +633,7 @@ def rename_folder(request, folder_id):
         folder.name = new_name
         folder.save()
 
-        return JsonResponse({'success': True, 'mes': 'Folder rename successfully.'})
+        return JsonResponse({'status': True, 'mes': 'Folder rename successfully.'})
 
     except MusicSheetFolder.DoesNotExist:
         return JsonResponse({'status': False, 'mes': 'Folder not found'})

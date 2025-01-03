@@ -40,10 +40,10 @@ class MusicSheetFolderForm(forms.ModelForm):
 
         # Check for duplicates and append a number if necessary
         while MusicSheetFolder.objects.filter(users=self.user, name=name).exists():
-            title = f"{original_name} ({counter})"
+            name = f"{original_name} ({counter})"
             counter += 1
 
-        return title
+        return name
 
 class AddSheetsToFolderForm(forms.Form):
     selected_sheets = forms.ModelMultipleChoiceField(
